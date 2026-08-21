@@ -1,0 +1,53 @@
+name: Оновити довідник
+
+# Тягне ігрові дані з ClashKingAssets у теку data/, щоб сайт не залежав
+# від чужого репозиторію в рантаймі. Якщо data/ порожня — сайт усе одно
+# працює, просто ходить по дані напряму (див. SOURCES в index.html).
+
+on:
+  schedule:
+    - cron: "0 4 * * *"      # щодня о 04:00 UTC
+  workflow_dispatch:          # і вручну з вкладки Actions
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Завантажити static_data
+        run: |
+          set -euo pipefail
+          BASE="https://raw.githubusercontent.com/ClashKingInc/ClashKingAssets/main/assets/static_data"
+          FILES="buildings traps troops spells heroes pets equipment helpers decorations obstacles skins sceneries capital_house_parts"
+          mkdir -p data
+          for f in $FILES; do
+            echo "→ $f"
+            curl -fsSL --retry 3 --retry-delay 2 "$BASE/$f.json" -o "data/$f.json.tmp"
+            python3 -c "import json,sys; json.load(open('data/$f.json.tmp'))"
+            mv "data/$f.json.tmp" "data/$f.json"
+          done
+
+      - name: Записати походження даних
+        run: |
+          cat > data/SOURCE.md <<EOF
+          # Походження даних
+
+          Файли в цій теці — копія \`assets/static_data\` з репозиторію
+          [ClashKingInc/ClashKingAssets](https://github.com/ClashKingInc/ClashKingAssets),
+          ліцензія GNU GPL v3. Оновлено автоматично: $(date -u +"%Y-%m-%d %H:%M UTC").
+
+          Не афілійовано з Supercell. Supercell не несе відповідальності за цей контент.
+          Див. [Fan Content Policy](https://supercell.com/en/fan-content-policy/).
+          EOF
+
+      - name: Закомітити, якщо є зміни
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --staged --quiet || git commit -m "data: оновлення довідника $(date -u +%F)"
+          git push

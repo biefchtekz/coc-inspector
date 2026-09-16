@@ -217,6 +217,7 @@
   .stagebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
   .stagebar button{padding:6px 13px;font-size:13px}
   .stagebar button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+  .stagebar .count{font-family:var(--mono);font-size:10px;color:var(--dimmer);margin-left:5px}
   .stagecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:18px}
   .stagecard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
   .stagecard h4{font-family:var(--display);font-size:17px;margin:0 0 2px}
@@ -824,16 +825,20 @@ function filterNote(before,after){
 /* У грі Builder Base — дві бази, але інвентар будівель один: що стоїть
    на другому етапі, вирішує гравець, розставляючи будівлі. У дампі
    координат немає (записи згорнуті в пари «рівень × кількість»), тож
-   автоматично поділити неможливо — розподіл задається руками і живе
-   в localStorage поруч із тегом акаунта. */
+   автоматично поділити неможливо.
+
+   Поки гравець нічого не вказав, ділимо порівну: це груба, але чесна
+   заготовка, з якою екран етапу одразу має сенс. Щойно щось поправлено
+   руками, розподіл стає явним і живе в localStorage поруч із тегом. */
 const STAGE1_FIXED=new Set([1000034,1000053]);   // Дім будівельника, Бойова машина
 const STAGE2_FIXED=new Set([1000078,1000080]);   // Аванпост О.Т.Т.О., Бойовий вертоліт
-let STAGES={}, stageView="all";
+let STAGES=null, stageView="all";                // null — розподіл ще не редагували
 
 function bucketKey(id,lvl){ return id+"|"+(lvl==null?"?":lvl); }
 function stagesKey(){ return KEY.stages+(MODEL&&MODEL.tag?MODEL.tag:"anon"); }
-function loadStages(){ STAGES=LS.json(stagesKey(),{})||{}; }
-function saveStages(){ LS.setJson(stagesKey(),STAGES); }
+function loadStages(){ STAGES=LS.json(stagesKey(),null); }
+function saveStages(){ LS.setJson(stagesKey(),STAGES||{}); }
+function stagesTouched(){ return !!STAGES; }
 function bbBuckets(){
   const out=[];
   ["buildings2","traps2"].forEach(k=>(MODEL.groups[k]||[]).forEach(g=>{
@@ -841,21 +846,39 @@ function bbBuckets(){
   }));
   return out.sort((a,b)=>a.id-b.id||(a.lvl||0)-(b.lvl||0));
 }
+function autoStage2(b){ return Math.floor(b.cnt/2); }   // зайва копія лишається на етапі 1
 function onStage2(b){
   if(STAGE1_FIXED.has(b.id)) return 0;
   if(STAGE2_FIXED.has(b.id)) return b.cnt;
-  const v=STAGES[bucketKey(b.id,b.lvl)];
+  const v=STAGES?STAGES[bucketKey(b.id,b.lvl)]:undefined;
+  if(v===undefined) return autoStage2(b);   // і для нових будівель у свіжому дампі теж
   return Math.max(0,Math.min(b.cnt,Number(v)||0));
 }
 function stageFixed(id){ return STAGE1_FIXED.has(id)||STAGE2_FIXED.has(id); }
-function splitEvenly(){
-  bbBuckets().forEach(b=>{
-    if(stageFixed(b.id)) return;
-    STAGES[bucketKey(b.id,b.lvl)]=Math.floor(b.cnt/2);
-  });
+/* Перше ж ручне правлення фіксує весь поточний розподіл, щоб решта
+   не «попливла» від зміни кількостей у наступному дампі. */
+function materializeStages(){
+  const map={};
+  bbBuckets().forEach(b=>{ if(!stageFixed(b.id)) map[bucketKey(b.id,b.lvl)]=onStage2(b); });
+  STAGES=map;
+  return map;
+}
+function setStage2(key,value){
+  if(!STAGES) materializeStages();
+  STAGES[key]=value;
   saveStages();
 }
-function resetStages(){ STAGES={}; saveStages(); }
+function splitEvenly(){
+  materializeStages();
+  bbBuckets().forEach(b=>{ if(!stageFixed(b.id)) STAGES[bucketKey(b.id,b.lvl)]=autoStage2(b); });
+  saveStages();
+}
+function allToStage1(){
+  materializeStages();
+  Object.keys(STAGES).forEach(k=>STAGES[k]=0);
+  saveStages();
+}
+function resetStages(){ STAGES=null; LS.del(stagesKey()); }
 function stageStats(){
   const blank=()=>({items:0,levels:0,weight:0,byType:{}});
   const s=[blank(),blank()];
@@ -1307,8 +1330,20 @@ function renderBB(m){
   }).join("")+'</div>');
 
   out.push('<div class="stagebar">'+
-    [["all","Разом"],["s1","Етап 1"],["s2","Етап 2"],["edit","Розподіл"]].map(([v,l])=>
-      '<button data-stage="'+v+'" aria-pressed="'+(stageView===v)+'">'+l+'</button>').join("")+'</div>');
+    [["all","Разом",stats[0].items+stats[1].items],["s1","Етап 1",stats[0].items],
+     ["s2","Етап 2",stats[1].items],["edit","Розподіл",null]].map(([v,l,n])=>
+      '<button data-stage="'+v+'" aria-pressed="'+(stageView===v)+'">'+l+
+      (n!=null?' <span class="count">'+n+'</span>':'')+'</button>').join("")+'</div>');
+
+  if(stageView!=="all"){
+    out.push('<div class="notice '+(stagesTouched()?"info":"")+'">'+
+      (stagesTouched()
+        ? 'Це твій розподіл, збережений у браузері, — у дампі розстановки немає.'
+        : 'Розподілу ще не задано, тому інвентар поділено <b>порівну</b>: '+
+          'дім будівельника з бойовою машиною на першому етапі, аванпост із вертольотом на другому, '+
+          'решта — навпіл. Поправ у вкладці «Розподіл», щоб збігалося з грою.')+
+      '</div>');
+  }
 
   if(stageView==="edit"){
     out.push(renderStageEditor());
@@ -1331,7 +1366,10 @@ function renderBB(m){
       return Object.assign({},g,{levels:levels,total:levels.reduce((s,l)=>s+l.cnt,0),
         min:nums.length?Math.min(...nums):null,max:nums.length?Math.max(...nums):null});
     }).filter(Boolean);
-    out.push(list.length?renderGrouped(list):'<p class="empty">На цьому етапі нічого не призначено — заповни «Розподіл».</p>');
+    out.push(list.length
+      ? renderGrouped(list)
+      : '<p class="empty">На цьому етапі нічого немає — усе відправлено на сусідній. '+
+        'Поправити можна у вкладці «Розподіл».</p>');
   }
   return out.join("");
 }
@@ -1351,9 +1389,12 @@ function renderStageEditor(){
   return '<div class="group assign"><h3>Розподіл між етапами</h3>'+
     '<p class="hint">У дампі немає координат — гра зберігає лише «скільки будівель якого рівня», '+
     'тому хто саме стоїть на другому етапі, доводиться вказати руками. Дім будівельника з бойовою машиною '+
-    'і аванпост із вертольотом розставлені самі. Розподіл зберігається в браузері окремо для кожного тега.</p>'+
+    'і аванпост із вертольотом розставлені самі, решта типово ділиться порівну. '+
+    'Розподіл зберігається в браузері окремо для кожного тега'+
+    (stagesTouched()?'':' і поки що не редагувався')+'.</p>'+
     '<div class="row" style="margin:0 0 12px"><button class="ghost tiny" id="stageHalf">Порівну</button>'+
-    '<button class="ghost tiny" id="stageReset">Скинути</button></div>'+
+    '<button class="ghost tiny" id="stageAll1">Усе на етап 1</button>'+
+    '<button class="ghost tiny" id="stageReset">Скинути до типового</button></div>'+
     '<div class="scroll"><table class="plain cards"><thead><tr><th>Будівля</th>'+
     '<th style="text-align:right">Рівень</th><th style="text-align:right">Всього</th>'+
     '<th style="text-align:right">Етап 1</th><th style="text-align:right">Етап 2</th></tr></thead><tbody>'+
@@ -1725,6 +1766,7 @@ $("#panels").addEventListener("click",e=>{
   const stage=e.target.closest("button[data-stage]");
   if(stage){ stageView=stage.dataset.stage; renderTabs(); return; }
   if(e.target.id==="stageHalf"){ splitEvenly(); renderTabs(); return; }
+  if(e.target.id==="stageAll1"){ allToStage1(); renderTabs(); return; }
   if(e.target.id==="stageReset"){ resetStages(); renderTabs(); return; }
   if(e.target.id==="snapClear"){
     if(confirm("Видалити збережені знімки для цього тега?")){ LS.del(snapsKey()); renderTabs(); }
@@ -1738,8 +1780,7 @@ $("#panels").addEventListener("change",e=>{
     const v=Math.max(0,Math.min(max,Math.round(Number(inp.value)||0)));
     inp.value=v;
     const key=inp.dataset.bucket;
-    STAGES[key]=v;
-    saveStages();
+    setStage2(key,v);
     renderTabs();
     const again=$('#panels input[data-bucket="'+key+'"]');
     if(again){ again.focus(); again.select(); }

@@ -3,39 +3,84 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>Оглядач бази — CoC dump inspector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* ── токени ─────────────────────────────────────────────────────────
+     Темна тема — типова. Світла вмикається системною настройкою або
+     кнопкою в шапці; кнопка ставить data-theme на <html> і перебиває все. */
   :root{
-    --bg:#111820; --panel:#18222C; --panel2:#1F2B37;
+    --bg:#111820; --panel:#18222C; --panel2:#1F2B37; --panelhi:#22303D;
     --line:#2B3A48; --line-soft:#233140;
     --txt:#D6E2EA; --dim:#7F94A5; --dimmer:#5A6E7E;
     --gold:#E9B44C; --teal:#4FD1C5; --warn:#F0A202; --alert:#FF7A7A;
+    --seg-lo:#42586B; --seg-hi:#E9B44C; --on-accent:#0C1418;
+    --res-gold:#E9B44C; --res-elixir:#C77DFF; --res-dark:#A98CD9;
+    --res-bgold:#D2A24C; --res-belixir:#9F7BD0; --res-gems:#5FD16B;
+    --res-shiny:#9FB4C4; --res-glowy:#6FC3E0; --res-starry:#E58FD6;
+    --shadow:0 1px 2px rgba(0,0,0,.35);
     --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
     --mono:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,monospace;
     --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
+  :root[data-theme="light"]{
+    --bg:#F3F6F8; --panel:#FFFFFF; --panel2:#EAEFF3; --panelhi:#E2E9EF;
+    --line:#CBD6DE; --line-soft:#E1E8ED;
+    --txt:#16222E; --dim:#5A7080; --dimmer:#8598A6;
+    --gold:#9A6B12; --teal:#0E8177; --warn:#A96A00; --alert:#C0392B;
+    --seg-lo:#A9BCC9; --seg-hi:#E0AE4B; --on-accent:#10181E;
+    --res-gold:#9A6B12; --res-elixir:#7B3FB5; --res-dark:#5D4A80;
+    --res-bgold:#8A5F17; --res-belixir:#6C4C9C; --res-gems:#1E8A34;
+    --res-shiny:#5E7585; --res-glowy:#1E7E9E; --res-starry:#A93E93;
+    --shadow:0 1px 2px rgba(20,40,60,.10);
+  }
+  @media (prefers-color-scheme:light){
+    :root:not([data-theme="dark"]){
+      --bg:#F3F6F8; --panel:#FFFFFF; --panel2:#EAEFF3; --panelhi:#E2E9EF;
+      --line:#CBD6DE; --line-soft:#E1E8ED;
+      --txt:#16222E; --dim:#5A7080; --dimmer:#8598A6;
+      --gold:#9A6B12; --teal:#0E8177; --warn:#A96A00; --alert:#C0392B;
+      --seg-lo:#A9BCC9; --seg-hi:#E0AE4B; --on-accent:#10181E;
+      --res-gold:#9A6B12; --res-elixir:#7B3FB5; --res-dark:#5D4A80;
+      --res-bgold:#8A5F17; --res-belixir:#6C4C9C; --res-gems:#1E8A34;
+      --res-shiny:#5E7585; --res-glowy:#1E7E9E; --res-starry:#A93E93;
+      --shadow:0 1px 2px rgba(20,40,60,.10);
+    }
+  }
+
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{background:var(--bg);color:var(--txt);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px 20px 80px}
+  .spacer{flex:1}
+  .hidden{display:none!important}
 
   header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;
-    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:14px}
-  h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,42px);letter-spacing:-0.02em;margin:0;line-height:1}
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:12px}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,5vw,40px);letter-spacing:-0.02em;margin:0;line-height:1}
   h1 .accent{color:var(--gold)}
-  .tagline{color:var(--dim);font-size:13px;margin-top:8px;max-width:56ch}
+  .tagline{color:var(--dim);font-size:13px;margin:8px 0 0;max-width:58ch}
+  .topright{display:flex;align-items:center;gap:12px}
   .stamp{font-family:var(--mono);font-size:11px;color:var(--dimmer);text-align:right;line-height:1.7}
+  button.icon{border:1px solid var(--line);background:var(--panel);color:var(--dim);border-radius:8px;
+    width:34px;height:34px;padding:0;font-size:15px;line-height:1;cursor:pointer}
+  button.icon:hover{color:var(--txt);border-color:var(--dim)}
 
   .srcbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;
-    color:var(--dim);margin-bottom:24px;padding:8px 12px;background:var(--panel);border:1px solid var(--line-soft);border-radius:7px}
+    color:var(--dim);margin-bottom:18px;padding:8px 12px;background:var(--panel);border:1px solid var(--line-soft);border-radius:8px}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--dimmer);flex:none}
   .dot.live{background:var(--teal)}
   .dot.stale{background:var(--warn)}
   .dot.fail{background:var(--alert)}
+  .dot.busy{background:var(--gold)}
   .srcbar a{color:var(--dim)}
+  .age{padding:2px 7px;border-radius:20px;border:1px solid var(--line);font-size:10px;letter-spacing:.04em}
+  .age.fresh{color:var(--teal);border-color:var(--teal)}
+  .age.warn{color:var(--warn);border-color:var(--warn)}
+  .age.old{color:var(--alert);border-color:var(--alert)}
 
   .input-panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
   .label{font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
@@ -48,44 +93,62 @@
   button:hover{border-color:var(--dim)}
   button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   button:disabled{opacity:.5;cursor:progress}
-  button.primary{background:var(--teal);border-color:var(--teal);color:#0C1418}
-  button.primary:hover{background:#63DACF;border-color:#63DACF}
+  button.primary{background:var(--teal);border-color:var(--teal);color:var(--on-accent)}
+  button.primary:hover{filter:brightness(1.08)}
   button.ghost{background:transparent}
-  .msg{margin-top:12px;font-size:13px;font-family:var(--mono)}
+  button.tiny{padding:4px 10px;font-size:12px;font-weight:500}
+  .chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);cursor:pointer;white-space:nowrap}
+  .chk input{accent-color:var(--teal)}
+  .msg{margin-top:12px;font-size:13px;font-family:var(--mono);color:var(--dim)}
   .msg.error{color:var(--alert)}
 
+  .dumpbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 14px;margin-bottom:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;font-size:13px}
+  .dumpbar-tag{font-family:var(--mono);font-weight:700;color:var(--gold)}
+  .dumpbar-note{font-family:var(--mono);font-size:11px;color:var(--dimmer)}
+
   .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line-soft);
-    border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:26px 0}
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:22px 0}
   .stat{background:var(--panel);padding:14px 16px}
   .stat .k{font-family:var(--mono);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--dim)}
-  .stat .v{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.2;margin-top:4px}
+  .stat .v{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.2;margin-top:4px;word-break:break-word}
   .stat .sub{font-size:11px;color:var(--dimmer);font-family:var(--mono);margin-top:2px}
   .stat .v.gold{color:var(--gold)} .stat .v.alert{color:var(--alert)} .stat .v.teal{color:var(--teal)}
+  .summary.compact{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+  .summary.compact .stat{padding:11px 13px}
+  .summary.compact .stat .v{font-size:20px}
 
-  .notice{border-left:3px solid var(--warn);background:rgba(240,162,2,.07);padding:11px 14px;
+  .notice{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 9%,transparent);padding:11px 14px;
     border-radius:0 7px 7px 0;font-size:13px;margin-bottom:10px}
-  .notice.bad{border-left-color:var(--alert);background:rgba(255,122,122,.07)}
+  .notice.bad{border-left-color:var(--alert);background:color-mix(in srgb,var(--alert) 9%,transparent)}
+  .notice.info{border-left-color:var(--teal);background:color-mix(in srgb,var(--teal) 9%,transparent)}
   .notice code{font-family:var(--mono);font-size:12px;color:var(--gold)}
 
-  nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:20px}
+  nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:14px}
   nav.tabs button{border:none;background:none;border-radius:0;border-bottom:2px solid transparent;
     color:var(--dim);font-weight:600;font-size:13px;padding:9px 13px}
   nav.tabs button:hover{color:var(--txt)}
   nav.tabs button[aria-selected="true"]{color:var(--gold);border-bottom-color:var(--gold)}
   nav.tabs .count{font-family:var(--mono);font-size:10px;color:var(--dimmer);margin-left:5px}
 
-  .hallbar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:18px;
-    padding:12px 14px;background:var(--panel);border:1px solid var(--line-soft);border-radius:8px}
+  .hallbar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;
+    padding:11px 14px;background:var(--panel);border:1px solid var(--line-soft);border-radius:8px}
   .hallbar label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
-  select{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;
-    padding:6px 10px;font-family:var(--mono);font-size:13px;margin-left:8px}
-  select:focus-visible{outline:2px solid var(--teal)}
-  .hallbar .note{font-size:12px;color:var(--dimmer);margin-left:auto}
+  select,input[type="search"],input[type="number"]{background:var(--bg);color:var(--txt);border:1px solid var(--line);
+    border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:13px}
+  select{margin-left:8px}
+  select:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+  .hallbar .note{font-size:12px;color:var(--dimmer);margin-left:auto;text-align:right}
 
-  .group{margin-bottom:30px}
+  .filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;
+    padding:9px 12px;background:var(--panel);border:1px solid var(--line-soft);border-radius:8px}
+  .filters input[type="search"]{min-width:200px;flex:0 1 260px}
+
+  .group{margin-bottom:28px;content-visibility:auto;contain-intrinsic-size:auto 400px}
   .group h3{font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);
     font-weight:500;margin:0 0 10px;display:flex;align-items:center;gap:10px}
   .group h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .group h3 .tag{font-size:10px;color:var(--dimmer);letter-spacing:.06em}
 
   .item{display:grid;grid-template-columns:minmax(150px,1.1fr) 60px minmax(190px,2fr) 74px;gap:14px;
     align-items:center;padding:9px 12px;border-radius:7px}
@@ -102,10 +165,10 @@
 
   .ribbon{display:flex;gap:2px;align-items:stretch;min-height:30px}
   .seg{flex:1 1 auto;min-width:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;
-    font-family:var(--mono);font-size:11px;font-weight:700;color:#0C1418;position:relative;padding:3px 2px}
+    font-family:var(--mono);font-size:11px;font-weight:700;color:var(--on-accent);position:relative;padding:3px 2px}
   .seg .c{position:absolute;top:2px;right:4px;font-size:8px;font-weight:500;opacity:.65}
   .seg.busy::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
-    width:4px;height:4px;border-radius:50%;background:#0C1418;opacity:.55}
+    width:4px;height:4px;border-radius:50%;background:var(--on-accent);opacity:.55}
   .seg.gap{outline:1px dashed var(--warn);outline-offset:-1px}
 
   .flags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
@@ -114,7 +177,6 @@
   .flag.gold{border-color:var(--gold);color:var(--gold)}
   .flag.warn{border-color:var(--warn);color:var(--warn)}
   .flag.alert{border-color:var(--alert);color:var(--alert)}
-  .flag.teal{border-color:var(--teal);color:var(--teal)}
 
   table.plain{width:100%;border-collapse:collapse;font-size:14px}
   table.plain th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
@@ -123,7 +185,7 @@
   table.plain tr:hover td{background:var(--panel)}
   table.plain td.num{font-family:var(--mono);text-align:right;white-space:nowrap}
   .lvlchip{display:inline-block;min-width:26px;text-align:center;font-family:var(--mono);font-size:12px;
-    font-weight:700;padding:2px 6px;border-radius:4px;color:#0C1418}
+    font-weight:700;padding:2px 6px;border-radius:4px;color:var(--on-accent)}
   .scroll{overflow:auto;max-height:72vh;border-radius:8px}
   table.plain thead th{position:sticky;top:0;z-index:2;background:var(--bg);box-shadow:inset 0 -1px 0 var(--line)}
   table.plain thead th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
@@ -131,34 +193,66 @@
   table.plain thead th.sortable::after{content:"↕";opacity:.25;margin-left:5px;font-size:11px}
   table.plain thead th.sorted-asc::after{content:"↑";opacity:1;color:var(--gold)}
   table.plain thead th.sorted-desc::after{content:"↓";opacity:1;color:var(--gold)}
-  .res.r-gold{color:#E9B44C}
-  .res.r-elixir{color:#C77DFF}
-  .res.r-dark-elixir{color:#A98CD9}
-  .res.r-builder-gold{color:#D2A24C}
-  .res.r-builder-elixir{color:#9F7BD0}
-  .res.r-gems{color:#5FD16B}
-  .res.r-shiny-ore{color:#9FB4C4}
-  .res.r-glowy-ore{color:#6FC3E0}
-  .res.r-starry-ore{color:#E58FD6}
+
+  .res{font-family:var(--mono);font-size:12px;white-space:nowrap}
   .res + .res{margin-left:8px}
+  .res.r-gold{color:var(--res-gold)}
+  .res.r-elixir{color:var(--res-elixir)}
+  .res.r-dark-elixir{color:var(--res-dark)}
+  .res.r-builder-gold{color:var(--res-bgold)}
+  .res.r-builder-elixir{color:var(--res-belixir)}
+  .res.r-gems{color:var(--res-gems)}
+  .res.r-shiny-ore{color:var(--res-shiny)}
+  .res.r-glowy-ore{color:var(--res-glowy)}
+  .res.r-starry-ore{color:var(--res-starry)}
+
   .empty{color:var(--dimmer);font-size:14px;padding:20px 0}
-  .hidden{display:none}
-  .hint{font-size:12.5px;color:var(--dim);margin:0 0 12px;max-width:78ch}
+  .hint{font-size:12.5px;color:var(--dim);margin:0 0 12px;max-width:80ch}
   .idlist{font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--dim);word-break:break-all}
   .idlist b{color:var(--alert);font-weight:500}
-  .res{font-family:var(--mono);font-size:12px;white-space:nowrap}
-  .res.Gold{color:var(--gold)} .res.Elixir{color:#C77DFF} .res.DarkElixir{color:#9C86B8}
+  .up{color:var(--teal)} .down{color:var(--alert)} .muted{color:var(--dimmer)}
+
+  /* етапи Builder Base */
+  .stagebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .stagebar button{padding:6px 13px;font-size:13px}
+  .stagebar button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+  .stagecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:18px}
+  .stagecard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .stagecard h4{font-family:var(--display);font-size:17px;margin:0 0 2px}
+  .stagecard .hall{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px}
+  .stagecard dl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin:0;font-family:var(--mono);font-size:12px}
+  .stagecard dt{color:var(--dim)} .stagecard dd{margin:0;text-align:right;font-weight:700}
+  .bar{height:6px;border-radius:3px;background:var(--panel2);overflow:hidden;margin-top:10px;display:flex}
+  .bar i{display:block;height:100%}
+  .assign input[type="number"]{width:76px;text-align:right}
 
   footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line-soft);
     font-size:12px;color:var(--dimmer);line-height:1.7}
   footer a{color:var(--dim)}
 
   @media (max-width:720px){
+    .wrap{padding:18px 14px 60px}
     .item{grid-template-columns:1fr 1fr;gap:8px}
     .item .qty,.item .cap{text-align:left}
     .item > div:nth-child(3){grid-column:1 / -1}
+    .hallbar .note{margin-left:0;text-align:left;width:100%}
+    .scroll{max-height:none;overflow:visible}
+    table.cards thead{display:none}
+    table.cards tr{display:block;border:1px solid var(--line-soft);border-radius:9px;
+      margin-bottom:8px;padding:6px 10px;background:var(--panel)}
+    table.cards tr:hover td{background:transparent}
+    table.cards td{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+      border:0;padding:4px 0;text-align:right}
+    table.cards td::before{content:attr(data-label);color:var(--dim);font-family:var(--mono);
+      font-size:10px;letter-spacing:.08em;text-transform:uppercase;text-align:left;flex:none}
+    table.cards td:first-child{font-weight:700;border-bottom:1px solid var(--line-soft);padding-bottom:6px;margin-bottom:4px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media print{
+    .srcbar,.input-panel,.dumpbar,nav.tabs,.filters,button{display:none!important}
+    .scroll{max-height:none;overflow:visible}
+    body{background:#fff;color:#000}
+  }
 </style>
 </head>
 <body>
@@ -167,27 +261,43 @@
   <header class="top">
     <div>
       <h1>Оглядач <span class="accent">бази</span></h1>
-      <p class="tagline">Встав JSON зі збереження акаунта. Довідник рівнів підтягується з відкритого джерела в момент розбору — нічого не зашито у файл.</p>
+      <p class="tagline">Встав JSON зі збереження акаунта. Довідник рівнів підтягується з відкритого джерела й кешується локально — нічого не зашито у файл.</p>
     </div>
-    <div class="stamp" id="stamp"></div>
+    <div class="topright">
+      <button class="icon" id="theme" title="Перемкнути тему" aria-label="Перемкнути тему">◐</button>
+      <div class="stamp" id="stamp"></div>
+    </div>
   </header>
 
   <div class="srcbar">
     <span class="dot" id="srcDot"></span>
     <span id="srcText">Довідник не завантажено — підтягнеться при розборі</span>
-    <span style="margin-left:auto"><button class="ghost" id="reload" style="padding:3px 10px;font-size:12px">Оновити довідник</button></span>
+    <span class="age hidden" id="srcAge"></span>
+    <span class="spacer"></span>
+    <button class="ghost tiny" id="reload">Оновити довідник</button>
   </div>
 
-  <section class="input-panel">
+  <section class="input-panel" id="inputPanel">
     <div class="label">JSON бази</div>
     <textarea id="dump" spellcheck="false" placeholder='{ "tag": "#XXXXXXX", "buildings": [ … ] }'></textarea>
     <div class="row">
       <button class="primary" id="parse">Розібрати</button>
       <button class="ghost" id="sample">Підставити приклад</button>
       <button class="ghost" id="clear">Очистити</button>
+      <span class="spacer"></span>
+      <label class="chk" title="Дамп містить тег акаунта. За замовчуванням він живе лише до закриття вкладки.">
+        <input type="checkbox" id="keep"> пам'ятати між сеансами
+      </label>
     </div>
     <div class="msg" id="msg"></div>
   </section>
+
+  <div class="dumpbar hidden" id="dumpBar">
+    <span class="dumpbar-tag" id="dumpTag"></span>
+    <span class="dumpbar-note" id="dumpNote"></span>
+    <span class="spacer"></span>
+    <button class="ghost tiny" id="edit">Змінити дамп</button>
+  </div>
 
   <div id="result" class="hidden">
     <div class="summary" id="summary"></div>
@@ -196,148 +306,342 @@
     <div class="hallbar">
       <div><label for="thSel">Ратуша</label><select id="thSel"></select></div>
       <div><label for="bhSel">Дім будівельника</label><select id="bhSel"></select></div>
-      <span class="note">Змінюй, щоб побачити, що відкриється на наступному рівні.</span>
+      <span class="note" id="gateNote">Змінюй, щоб побачити, що відкриється на наступному рівні.</span>
     </div>
 
-    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Розділи"></nav>
+
+    <div class="filters hidden" id="filters">
+      <input type="search" id="fq" placeholder="Пошук: назва або ID" aria-label="Пошук за назвою або ID">
+      <label class="chk"><input type="checkbox" id="fbehind"> тільки те, що відстає</label>
+      <label class="chk"><input type="checkbox" id="fwalls"> без стін</label>
+      <label class="chk hidden" id="fvillageWrap">Село
+        <select id="fvillage">
+          <option value="all">всі</option>
+          <option value="home">головне</option>
+          <option value="builder">Builder Base</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <button class="ghost tiny hidden" id="csv">Експорт CSV</button>
+      <button class="ghost tiny" id="fclear">Скинути фільтри</button>
+    </div>
+
     <div id="panels"></div>
   </div>
 
   <footer>
     Довідник рівнів і назв — <a href="https://github.com/ClashKingInc/ClashKingAssets" target="_blank" rel="noopener">ClashKing Assets</a>,
-    відкритий репозиторій ігрових даних. Дані тягнуться напряму з raw.githubusercontent у момент розбору, нічого не кешується між сеансами.<br>
+    відкритий репозиторій ігрових даних. Локальна копія оновлюється щодня і кешується в браузері; дамп нікуди не надсилається.<br>
     Не афілійовано з Supercell. Supercell не несе відповідальності за цей інструмент.
     Див. <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noopener">Fan Content Policy</a>.
   </footer>
 </div>
 
 <script>
+"use strict";
+
 /* ============================================================
-   Джерело довідника
+   Дрібні утиліти
    ============================================================ */
-/* Довідник шукається спершу поруч із сайтом (тека data/, яку оновлює GitHub Action),
-   і лише потім — напряму з репозиторію ClashKing. Так захостена версія
-   не падає, якщо GitHub raw недоступний, і вантажиться швидше. */
-const SOURCES=["./data/","https://raw.githubusercontent.com/ClashKingInc/ClashKingAssets/main/assets/static_data/"];
-let   activeSource=null;
-const FILE_BY_PREFIX = {
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function num(n){ return Number(n||0).toLocaleString("uk-UA"); }
+function hms(sec){
+  if(sec<0) sec=0;
+  const d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600),m=Math.floor(sec%3600/60);
+  const p=[]; if(d)p.push(d+" д"); if(h||d)p.push(h+" год"); p.push(m+" хв");
+  return p.join(" ");
+}
+function days(sec){
+  if(!sec) return "—";
+  return sec>=86400?Math.round(sec/86400)+" д":Math.round(sec/3600)+" год";
+}
+function fmtDate(ts){ return new Date(ts*1000).toLocaleString("uk-UA",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
+function plural(n,one,few,many){
+  const a=Math.abs(n)%100, b=a%10;
+  if(a>10&&a<20) return many; if(b>1&&b<5) return few; if(b===1) return one; return many;
+}
+function ageDays(iso){
+  const t=Date.parse(iso);
+  return isNaN(t)?null:Math.floor((Date.now()-t)/86400000);
+}
+function ageText(iso){
+  const d=ageDays(iso);
+  if(d===null) return "";
+  if(d<=0) return "сьогодні"; if(d===1) return "вчора";
+  return d+" "+plural(d,"день","дні","днів")+" тому";
+}
+
+/* Сховище: будь-який доступ може кинути (приватний режим, заблоковані дані сайту),
+   тому все загорнуте, і застосунок має працювати, навіть коли нічого не зберігається. */
+function safeStore(pick){
+  const api = {
+    ok(){ try{ pick().setItem("__t","1"); pick().removeItem("__t"); return true; }catch(e){ return false; } },
+    get(k){ try{ return pick().getItem(k); }catch(e){ return null; } },
+    set(k,v){ try{ pick().setItem(k,v); return true; }catch(e){ return false; } },
+    del(k){ try{ pick().removeItem(k); }catch(e){} },
+    keys(){ try{ return Object.keys(pick()); }catch(e){ return []; } },
+    json(k,def){ const v=api.get(k); if(v==null) return def; try{ return JSON.parse(v); }catch(e){ return def; } },
+    setJson(k,v){ return api.set(k,JSON.stringify(v)); }
+  };
+  return api;
+}
+const SS = safeStore(()=>sessionStorage);
+const LS = safeStore(()=>localStorage);
+
+const KEY = {
+  dump:"coc:dump", keep:"coc:dump:keep", ui:"coc:ui", theme:"coc:theme",
+  ref:"coc:ref:", stages:"coc:stages:", snaps:"coc:snaps:"
+};
+
+/* ============================================================
+   Тема
+   ============================================================ */
+function applyTheme(mode){
+  if(mode==="dark"||mode==="light") document.documentElement.dataset.theme=mode;
+  else delete document.documentElement.dataset.theme;
+  $("#theme").textContent = mode==="dark"?"☾":mode==="light"?"☀":"◐";
+  $("#theme").title = "Тема: "+(mode==="dark"?"темна":mode==="light"?"світла":"як у системі");
+}
+$("#theme").addEventListener("click",()=>{
+  const now=LS.get(KEY.theme)||"auto";
+  const next=now==="auto"?"dark":now==="dark"?"light":"auto";
+  LS.set(KEY.theme,next); applyTheme(next);
+  if(MODEL) renderTabs();           // сегменти й чипи малюються кольорами з теми
+});
+function cssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+function hexToRgb(hex){
+  const h=hex.replace("#","");
+  const v=h.length===3?h.split("").map(c=>c+c).join(""):h;
+  return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)];
+}
+
+/* ============================================================
+   Довідник
+   ============================================================ */
+/* Спершу — слім-бандл поруч із сайтом (data/ref.min.json, його збирає
+   GitHub Action): один запит, ~35 КБ у gzip, і він лягає в localStorage
+   за версією з meta.json. Якщо бандла немає — старий шлях: окремі
+   таблиці локально, а потім напряму з ClashKing. */
+const LOCAL="./data/";
+const RAW="https://raw.githubusercontent.com/ClashKingInc/ClashKingAssets/main/assets/static_data/";
+const LEGACY_SOURCES=[LOCAL,RAW];
+const FILE_BY_PREFIX={
   1:"buildings", 4:"troops", 8:"obstacles", 12:"traps", 18:"decorations",
   26:"spells", 28:"heroes", 73:"pets", 82:"capital_house_parts",
-  90:"equipment", 93:"helpers", 52:"skins", 60:"sceneries"
+  90:"equipment", 93:"helpers", 107:"guardians", 52:"skins", 60:"sceneries"
 };
-/* мінімальний запасний мапінг, якщо мережі немає */
-const FALLBACK = {
+const KNOWN_PREFIXES=new Set(Object.keys(FILE_BY_PREFIX).map(Number).concat([102,103]));
+
+/* мінімальний запасний мапінг, якщо не приїхало взагалі нічого */
+const FALLBACK={
   1000000:"Army Camp",1000001:"Town Hall",1000008:"Cannon",1000009:"Archer Tower",1000010:"Wall",
-  1000015:"Builder's Hut",1000034:"Builder Hall",1000071:"Hero Hall",1000093:"Helper Hut",
-  1000097:"Crafting Station",28000000:"Barbarian King",28000001:"Archer Queen",
-  28000002:"Grand Warden",28000003:"Battle Machine",28000006:"Minion Prince"
+  1000015:"Builder's Hut",1000034:"Builder Hall",1000071:"Hero Hall",1000078:"O.T.T.O's Outpost",
+  1000093:"Helper Hut",1000097:"Crafting Station",28000000:"Barbarian King",28000001:"Archer Queen",
+  28000002:"Grand Warden",28000003:"Battle Machine",28000005:"Battle Copter",28000006:"Minion Prince"
 };
 
-const DB = new Map();          // id -> {name, village, type, levels, resource}
-let   dbState = {loaded:false, files:[], bytes:0, at:null, failed:[]};
+const DB=new Map();
+const REF={state:"idle",source:null,meta:null,bytes:0,at:null,failed:[],files:[]};
 
-function normalize(json){
-  if(Array.isArray(json)) return json;
-  for(const k in json){ if(Array.isArray(json[k])) return json[k]; }
-  return [];
+async function getText(url,opts){
+  const r=await fetch(url,opts||{});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.text();
+}
+function ingest(items){
+  items.forEach(o=>{
+    if(!o||typeof o._id!=="number") return;
+    DB.set(o._id,{
+      id:o._id, name:o.name, village:o.village||null, type:o.type||null,
+      levels:Array.isArray(o.levels)?o.levels:[],
+      resource:o.upgrade_resource||o.build_resource||null,
+      hero:o.hero||null, rarity:o.rarity||null, src:o.src||null,
+      superchargeable:!!o.superchargeable
+    });
+  });
+}
+function dropOldCache(keep){
+  LS.keys().forEach(k=>{ if(k.startsWith(KEY.ref)&&k!==keep) LS.del(k); });
 }
 
-async function fetchRef(file){
-  const order=activeSource?[activeSource,...SOURCES.filter(s=>s!==activeSource)]:SOURCES;
-  let lastErr;
-  for(const base of order){
-    try{
-      const r=await fetch(base+file+".json",{cache:"no-store"});
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      const text=await r.text();
-      activeSource=base;
-      return text;
-    }catch(err){ lastErr=err; }
+async function loadBundle(force,onProgress){
+  const meta=JSON.parse(await getText(LOCAL+"meta.json",{cache:"no-cache"}));
+  if(!meta||!meta.version) throw new Error("meta.json без версії");
+  REF.meta=meta;
+  const ck=KEY.ref+meta.version;
+  let text=force?null:LS.get(ck);
+  let cached=!!text;
+  if(!text){
+    onProgress&&onProgress("ref.min.json");
+    text=await getText(LOCAL+"ref.min.json",{cache:"default"});
+    dropOldCache(ck);
+    LS.set(ck,text);
   }
-  throw lastErr||new Error("недоступно");
+  const data=JSON.parse(text);
+  if(!data||!Array.isArray(data.items)) throw new Error("бандл без items");
+  ingest(data.items);
+  REF.source=cached?"cache":"bundle";
+  REF.bytes=text.length;
+  REF.files=Object.keys(meta.counts||{});
 }
 
-async function loadRefs(prefixes, onProgress){
+async function loadLegacy(prefixes,onProgress){
   const files=[...new Set(prefixes.map(p=>FILE_BY_PREFIX[p]).filter(Boolean))];
-  const failed=[]; let bytes=0;
-  activeSource=null;
-  await Promise.all(files.map(async f=>{
+  if(!files.length) throw new Error("нема що тягнути");
+  let base=null;
+  /* Джерело обираємо один раз, послідовно, щоб у статусі не було гонки. */
+  for(const candidate of LEGACY_SOURCES){
+    try{ await getText(candidate+files[0]+".json",{cache:"no-cache"}); base=candidate; break; }
+    catch(err){ REF.failed.push(candidate+": "+err.message); }
+  }
+  if(!base) throw new Error("жодне джерело не відповіло");
+  const ok=[];
+  for(const f of files){
     try{
       onProgress&&onProgress(f);
-      const text=await fetchRef(f);
-      bytes+=text.length;
-      normalize(JSON.parse(text)).forEach(o=>{
-        if(o && o._id!=null) DB.set(o._id,{
-          name:o.name, village:o.village||null, type:o.type||null,
-          levels:o.levels||[], resource:o.upgrade_resource||o.build_resource||null,
-          gearUp:!!o.gear_up
-        });
-      });
-    }catch(err){ failed.push(f+" ("+err.message+")"); }
-  }));
-  dbState={loaded:DB.size>0, files:files.filter(f=>!failed.some(x=>x.startsWith(f))), bytes, at:new Date(), failed};
+      const text=await getText(base+f+".json",{cache:"no-cache"});
+      REF.bytes+=text.length;
+      const json=JSON.parse(text);
+      const arr=Array.isArray(json)?json:(Object.values(json).find(Array.isArray)||[]);
+      ingest(arr.map(o=>Object.assign({src:f},o)));
+      ok.push(f);
+    }catch(err){ REF.failed.push(f+" ("+err.message+")"); }
+  }
+  if(!ok.length) throw new Error("жоден файл не приїхав");
+  REF.source=base===LOCAL?"files":"raw";
+  REF.files=ok;
+}
+
+async function loadRefs(prefixes,onProgress,force){
+  DB.clear();
+  REF.failed=[]; REF.bytes=0; REF.files=[]; REF.meta=null; REF.source=null; REF.state="loading";
+  paintSrc("Завантаження довідника…");
+  try{
+    await loadBundle(force,onProgress);
+  }catch(err){
+    REF.failed.push("бандл: "+err.message);
+    try{ await loadLegacy(prefixes,onProgress); }
+    catch(err2){ REF.failed.push("файли: "+err2.message); }
+  }
+  REF.state=DB.size?(REF.failed.length?"partial":"ok"):"fail";
+  REF.at=new Date();
   paintSrc();
 }
 
 function paintSrc(msg){
-  const dot=document.getElementById("srcDot"), txt=document.getElementById("srcText");
-  if(msg){ dot.className="dot"; txt.textContent=msg; return; }
-  if(!dbState.loaded){
+  const dot=$("#srcDot"), txt=$("#srcText"), age=$("#srcAge");
+  age.classList.add("hidden");
+  if(msg){ dot.className="dot busy"; txt.textContent=msg; return; }
+  if(REF.state==="fail"){
     dot.className="dot fail";
     txt.textContent="Довідник недоступний — працюю на вбудованому мінімумі"+
-      (dbState.failed.length?" · "+dbState.failed.join(", "):"");
+      (REF.failed.length?" · "+REF.failed.join(" · "):"");
     return;
   }
-  dot.className=dbState.failed.length?"dot stale":"dot live";
-  const where=activeSource&&activeSource.startsWith("./")?"локальна копія":"ClashKing (raw)";
-  txt.textContent=where+" · "+dbState.files.length+" файлів · "+
-    Math.round(dbState.bytes/1024)+" КБ · завантажено "+dbState.at.toLocaleTimeString("uk-UA")+
-    (dbState.failed.length?" · не вдалося: "+dbState.failed.join(", "):"");
+  if(REF.state==="idle"){ dot.className="dot"; txt.textContent="Довідник не завантажено — підтягнеться при розборі"; return; }
+  dot.className=REF.failed.length?"dot stale":"dot live";
+  const where={cache:"кеш браузера",bundle:"локальний бандл",files:"локальні файли",raw:"ClashKing (raw)"}[REF.source]||"?";
+  const bits=[where, Math.round(REF.bytes/1024)+" КБ", DB.size+" записів"];
+  if(REF.meta){
+    bits.push("версія "+REF.meta.version);
+    const d=ageDays(REF.meta.upstream&&REF.meta.upstream.date||REF.meta.generated_at);
+    age.textContent="дані: "+ageText(REF.meta.upstream&&REF.meta.upstream.date||REF.meta.generated_at);
+    age.className="age "+(d===null?"":d<14?"fresh":d<60?"warn":"old");
+    age.classList.remove("hidden");
+  }
+  if(REF.failed.length) bits.push("не вдалося: "+REF.failed.join(", "));
+  txt.textContent=bits.join(" · ");
 }
 
 /* ============================================================
    Розбір дампу
    ============================================================ */
-let MODEL=null, TH=null, BH=null;
+let MODEL=null, TH=null, BH=null, GATES={};
 
 const SECTIONS=[
-  {key:"buildings",  label:"Будівлі",   village:"home",    grouped:true},
-  {key:"traps",      label:"Пастки",    village:"home",    grouped:true},
-  {key:"buildings2", label:"Будівлі",   village:"builder", grouped:true},
-  {key:"traps2",     label:"Пастки",    village:"builder", grouped:true},
-  {key:"units",      label:"Війська",   village:"home",    grouped:false},
-  {key:"siege_machines",label:"Облогові",village:"home",   grouped:false},
-  {key:"spells",     label:"Закляття",  village:"home",    grouped:false},
-  {key:"heroes",     label:"Герої",     village:"home",    grouped:false},
-  {key:"pets",       label:"Улюбленці", village:"home",    grouped:false},
-  {key:"equipment",  label:"Спорядження",village:"home",   grouped:false},
-  {key:"units2",     label:"Війська",   village:"builder", grouped:false},
-  {key:"heroes2",    label:"Герої",     village:"builder", grouped:false}
+  {key:"buildings",     label:"Будівлі",     village:"home",    kind:"build",   grouped:true},
+  {key:"traps",         label:"Пастки",      village:"home",    kind:"build",   grouped:true},
+  {key:"buildings2",    label:"Будівлі",     village:"builder", kind:"build",   grouped:true},
+  {key:"traps2",        label:"Пастки",      village:"builder", kind:"build",   grouped:true},
+  {key:"units",         label:"Війська",     village:"home",    kind:"lab"},
+  {key:"siege_machines",label:"Облогові",    village:"home",    kind:"lab"},
+  {key:"spells",        label:"Закляття",    village:"home",    kind:"lab"},
+  {key:"heroes",        label:"Герої",       village:"home",    kind:"hero"},
+  {key:"pets",          label:"Улюбленці",   village:"home",    kind:"pet"},
+  {key:"equipment",     label:"Спорядження", village:"home",    kind:"gear"},
+  {key:"guardians",     label:"Хранителі",   village:"home",    kind:"guard"},
+  {key:"units2",        label:"Війська",     village:"builder", kind:"lab"},
+  {key:"heroes2",       label:"Герої",       village:"builder", kind:"hero"},
+  {key:"helpers",       label:"Помічники",   village:"home",    kind:"helper"}
 ];
+const SECTION_KEYS=new Set(SECTIONS.map(s=>s.key));
+const SCALAR_KEYS=new Set(["tag","timestamp","name","level","trophies","clan","town_hall","builder_hall"]);
+const ID_KEYS=["data","dat","id"];
+const NOT_ID=new Set(["lvl","cnt","timer","helper_cooldown","gear_up","weapon","level","count","x","y"]);
 
+function plausibleId(n){
+  return Number.isInteger(n)&&n>=1e6&&n<1e9&&KNOWN_PREFIXES.has(Math.floor(n/1e6));
+}
 function readId(o,warns,section){
-  if(o.data!==undefined) return o.data;
-  const alt=Object.keys(o).find(k=>k!=="lvl"&&k!=="cnt"&&typeof o[k]==="number"&&o[k]>1000);
+  for(const k of ID_KEYS){
+    if(typeof o[k]==="number"){
+      if(k!=="data") warns.push("У розділі <code>"+esc(section)+"</code> запис має ключ <code>"+esc(k)+
+        "</code> замість <code>data</code> (значення "+o[k]+"). Прочитав як data.");
+      return o[k];
+    }
+  }
+  const alt=Object.keys(o).find(k=>!NOT_ID.has(k)&&plausibleId(o[k]));
   if(alt){
-    warns.push('У розділі <code>'+section+'</code> запис має ключ <code>"'+alt+'"</code> замість <code>"data"</code> (значення '+o[alt]+'). Прочитав як data.');
+    warns.push("У розділі <code>"+esc(section)+"</code> запис має ключ <code>"+esc(alt)+
+      "</code> замість <code>data</code> (значення "+o[alt]+"). Прочитав як data.");
     return o[alt];
   }
   return null;
 }
+function describe(v){
+  if(Array.isArray(v)) return "масив, "+v.length+" елем.";
+  if(v&&typeof v==="object") return "об'єкт, ключів: "+Object.keys(v).length;
+  return typeof v+": "+String(v).slice(0,40);
+}
 
 function parse(raw){
   const j=JSON.parse(raw);
-  const warns=[], prefixes=new Set(), timers=[], groups={};
+  if(!j||typeof j!=="object"||Array.isArray(j)) throw new Error("очікував об'єкт верхнього рівня");
+  const warns=[], prefixes=new Set(), timers=[], groups={}, unknownKeys=[];
+  const sections=SECTIONS.slice();
 
-  SECTIONS.forEach(sec=>{
+  /* Розділи, яких немає в списку, не мовчимо: масиви із ID підхоплюємо
+     як є, решту показуємо в діагностиці — щоб було видно, що у файлі
+     ще лежить і чого інструмент не читає. */
+  Object.keys(j).forEach(k=>{
+    if(SECTION_KEYS.has(k)||SCALAR_KEYS.has(k)||k==="boosts") return;
+    const v=j[k];
+    const looksLikeSection=Array.isArray(v)&&v.length&&v.every(x=>x&&typeof x==="object")&&
+      v.some(x=>ID_KEYS.some(id=>typeof x[id]==="number"));
+    if(looksLikeSection) sections.push({key:k,label:k,village:"home",kind:"extra",auto:true});
+    else unknownKeys.push({key:k,shape:describe(v)});
+  });
+
+  sections.forEach(sec=>{
     const arr=j[sec.key];
     if(!Array.isArray(arr)) return;
     const byId={};
     arr.forEach(o=>{
-      if(typeof o==="number"){ byId[o]=byId[o]||{id:o,levels:[],total:0}; byId[o].total++; prefixes.add(Math.floor(o/1e6)); return; }
+      if(typeof o==="number"){
+        byId[o]=byId[o]||{id:o,levels:[],total:0};
+        byId[o].total++; if(plausibleId(o)) prefixes.add(Math.floor(o/1e6));
+        return;
+      }
+      if(!o||typeof o!=="object") return;
       const id=readId(o,warns,sec.key);
       if(id===null) return;
-      prefixes.add(Math.floor(id/1e6));
+      if(id<1e9) prefixes.add(Math.floor(id/1e6));
       byId[id]=byId[id]||{id:id,levels:[],total:0};
       const cnt=o.cnt!==undefined?o.cnt:1;
       const flags=[];
@@ -346,44 +650,46 @@ function parse(raw){
       if(o.weapon!==undefined) flags.push("weapon"+o.weapon);
       if(o.helper_recurrent) flags.push("helper");
       if(o.types) flags.push("modules");
+      if(o.helper_cooldown!==undefined) flags.push("cooldown");
       if(o.timer!==undefined) timers.push({id:id,lvl:o.lvl,seconds:o.timer,village:sec.village});
-      byId[id].levels.push({lvl:o.lvl===undefined?null:o.lvl,cnt:cnt,flags:flags});
+      if(o.helper_cooldown!==undefined) timers.push({id:id,lvl:o.lvl,seconds:o.helper_cooldown,village:sec.village,cooldown:true});
+      byId[id].levels.push({lvl:o.lvl===undefined?null:o.lvl,cnt:cnt,flags:flags,gear:o.gear_up?cnt:0});
       byId[id].total+=cnt;
       (o.types||[]).forEach(t=>{
-        prefixes.add(Math.floor(t.data/1e6));
-        (t.modules||[]).forEach(m=>prefixes.add(Math.floor(m.data/1e6)));
+        if(plausibleId(t.data)) prefixes.add(Math.floor(t.data/1e6));
+        (t.modules||[]).forEach(m=>{ if(plausibleId(m.data)) prefixes.add(Math.floor(m.data/1e6)); });
       });
     });
-    groups[sec.key]=Object.values(byId).map(g=>{
+    const list=Object.values(byId).map(g=>{
       const merged={};
       g.levels.forEach(l=>{
         const k=String(l.lvl);
-        merged[k]=merged[k]||{lvl:l.lvl,cnt:0,flags:[]};
-        merged[k].cnt+=l.cnt;
-        merged[k].flags=merged[k].flags.concat(l.flags);
+        merged[k]=merged[k]||{lvl:l.lvl,cnt:0,flags:[],gear:0};
+        merged[k].cnt+=l.cnt; merged[k].gear+=l.gear;
+        l.flags.forEach(f=>{ if(!merged[k].flags.includes(f)) merged[k].flags.push(f); });
       });
-      const levels=Object.values(merged).sort((a,b)=>(a.lvl||0)-(b.lvl||0));
-      const nums=levels.map(l=>l.lvl).filter(l=>l!==null);
-      return {id:g.id,total:g.total,levels:levels,village:sec.village,
+      const levels=Object.values(merged).sort((a,b)=>(a.lvl==null?-1:a.lvl)-(b.lvl==null?-1:b.lvl));
+      const nums=levels.map(l=>l.lvl).filter(l=>l!=null);
+      return {id:g.id,total:g.total,levels:levels,village:sec.village,section:sec.key,kind:sec.kind,
               min:nums.length?Math.min(...nums):null, max:nums.length?Math.max(...nums):null};
     }).sort((a,b)=>a.id-b.id);
+    if(list.length) groups[sec.key]=list;
   });
 
-  (j.helpers||[]).forEach(h=>{
-    prefixes.add(Math.floor(h.data/1e6));
-    groups.helpers=groups.helpers||[];
-    groups.helpers.push({id:h.data,total:1,village:"home",
-      levels:[{lvl:h.lvl,cnt:1,flags:h.helper_cooldown!==undefined?["cooldown"]:[]}],
-      min:h.lvl,max:h.lvl});
-    if(h.helper_cooldown!==undefined) timers.push({id:h.data,lvl:h.lvl,seconds:h.helper_cooldown,village:"home",cooldown:true});
-  });
+  const boosts=[];
+  if(j.boosts&&typeof j.boosts==="object"&&!Array.isArray(j.boosts)){
+    Object.keys(j.boosts).forEach(k=>boosts.push({id:Number(k),value:j.boosts[k]}));
+  }
 
-  return {raw:j,tag:j.tag,timestamp:j.timestamp,groups:groups,warns:warns,
-          prefixes:[...prefixes],timers:timers};
+  return {raw:j, tag:j.tag||null, timestamp:j.timestamp||null, groups:groups, sections:sections,
+          warns:warns, prefixes:[...prefixes], timers:timers, boosts:boosts, unknownKeys:unknownKeys};
 }
 
+function sectionOf(key){ return MODEL.sections.find(s=>s.key===key)||{key:key,label:key,village:"home",kind:"extra"}; }
+function eachGroup(m,fn){ Object.keys(m.groups).forEach(k=>m.groups[k].forEach(g=>fn(g,k))); }
+
 /* ============================================================
-   Довідник: назви й стелі рівнів
+   Довідник: назви, стелі, ціни
    ============================================================ */
 function ref(id){ return DB.get(id)||null; }
 function nameOf(id){
@@ -393,11 +699,17 @@ function nameOf(id){
   return "ID "+id;
 }
 function isKnown(id){ return DB.has(id)||FALLBACK[id]!==undefined; }
+function maxLevelOf(id){
+  const r=ref(id);
+  return r&&r.levels.length?Math.max(...r.levels.map(l=>l.level||0)):null;
+}
+function levelRow(id,lvl){
+  const r=ref(id);
+  return r?r.levels.find(l=>l.level===lvl)||null:null;
+}
 
 /* Стеля рівня. Рівні гейтяться не лише ратушею: війська — лабою,
-   спорядження — кузнею, герої — залом героїв, улюбленці — будинком пета.
-   Якщо будівлі-гейта немає в дампі, це обмеження просто ігнорується. */
-let GATES={};
+   спорядження — кузнею, герої — залом героїв, улюбленці — будинком пета. */
 function detectGates(m){
   const at=(key,id)=>{ const g=(m.groups[key]||[]).find(x=>x.id===id); return g?g.max:null; };
   return {
@@ -405,7 +717,8 @@ function detectGates(m){
     lab:at("buildings",1000007),
     lab_bb:at("buildings2",1000046),
     smith:at("buildings",1000070),
-    pet:at("buildings",1000068)
+    pet:at("buildings",1000068),
+    outpost:at("buildings2",1000078)
   };
 }
 function capOf(id,village){
@@ -425,20 +738,19 @@ function capOf(id,village){
     }
     return true;
   });
-  if(!ok.length) return null;
-  return Math.max(...ok.map(l=>l.level));
+  return ok.length?Math.max(...ok.map(l=>l.level)):null;
 }
-/* Вартість добудови від lvl до cap.
-   Ціна буває числом (будівлі, війська), об'єктом по видах руди (спорядження)
-   або рядком з крапкою з комою — тому повертаємо мапу «ресурс → сума». */
-function costTo(id,from,cap){
+/* Ціна буває числом (будівлі, війська), об'єктом по видах руди (спорядження)
+   або рядком — тому повертаємо мапу «ресурс → сума». Час беремо і з
+   build_time (будівлі), і з upgrade_time (лаба, герої, улюбленці). */
+function costTo(id,from,to){
   const r=ref(id);
   if(!r) return {costs:{},time:0};
   const costs={}; let time=0;
   const add=(res,val)=>{ if(val) costs[res]=(costs[res]||0)+val; };
   r.levels.forEach(l=>{
-    if(l.level<=from||l.level>cap) return;
-    time+=l.build_time||0;
+    if(l.level<=from||l.level>to) return;
+    time+=l.build_time||l.upgrade_time||0;
     const raw=(l.build_cost!=null?l.build_cost:l.upgrade_cost);
     if(raw==null) return;
     if(typeof raw==="number") add(resLabel(r.resource||"?"),raw);
@@ -447,34 +759,769 @@ function costTo(id,from,cap){
   });
   return {costs:costs,time:time};
 }
-
-/* ============================================================
-   Утиліти
-   ============================================================ */
-function hms(sec){
-  if(sec<0) sec=0;
-  const d=Math.floor(sec/86400),h=Math.floor(sec%86400/3600),m=Math.floor(sec%3600/60);
-  const p=[]; if(d)p.push(d+" д"); if(h||d)p.push(h+" год"); p.push(m+" хв");
-  return p.join(" ");
+function cumCost(id,lvl){
+  if(lvl==null) return {};
+  return costTo(id,0,lvl).costs;
 }
-function days(sec){ return sec>=86400?Math.round(sec/86400)+" д":Math.round(sec/3600)+" год"; }
-function fmtDate(ts){ return new Date(ts*1000).toLocaleString("uk-UA",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
-function num(n){ return n.toLocaleString("uk-UA"); }
-function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function resSlug(r){ return "r-"+String(r).toLowerCase().replace(/[^a-z0-9]+/g,"-"); }
 function resLabel(r){ return String(r).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
 function resCell(costs){
   const keys=Object.keys(costs).filter(k=>costs[k]>0);
-  if(!keys.length) return '<span style="color:var(--dimmer)">—</span>';
+  if(!keys.length) return '<span class="muted">—</span>';
   return keys.sort((a,b)=>costs[b]-costs[a])
     .map(k=>'<span class="res '+resSlug(k)+'" title="'+esc(k)+'">'+num(costs[k])+'</span>').join("");
 }
+function mergeCosts(into,from,mult){
+  Object.keys(from).forEach(k=>into[k]=(into[k]||0)+from[k]*(mult||1));
+  return into;
+}
 
-/* Сортування будь-якої таблиці: клік по заголовку.
-   Число беремо з data-sort, бо локалізований формат не парситься назад. */
+/* ============================================================
+   Фільтри
+   ============================================================ */
+const FILTER={q:"",behind:false,walls:false,village:"all"};
+const WALL_IDS=new Set([1000010,1000033]);
+
+function passId(id){
+  if(FILTER.walls&&WALL_IDS.has(id)) return false;
+  if(FILTER.q){
+    const q=FILTER.q.toLowerCase();
+    if(!(String(id).includes(q)||nameOf(id).toLowerCase().includes(q))) return false;
+  }
+  return true;
+}
+function isBehind(g){
+  const cap=capOf(g.id,g.village);
+  return cap!=null&&g.levels.some(l=>l.lvl!=null&&l.lvl<cap);
+}
+function filterGroups(list){
+  return (list||[]).filter(g=>{
+    if(!passId(g.id)) return false;
+    if(FILTER.village!=="all"&&g.village!==FILTER.village) return false;
+    if(FILTER.behind&&!isBehind(g)) return false;
+    return true;
+  });
+}
+function filterNote(before,after){
+  if(before===after) return "";
+  return '<p class="hint">Показано '+after+' із '+before+' — решту сховали фільтри.</p>';
+}
+
+/* ============================================================
+   Етапи Builder Base
+   ============================================================ */
+/* У грі Builder Base — дві бази, але інвентар будівель один: що стоїть
+   на другому етапі, вирішує гравець, розставляючи будівлі. У дампі
+   координат немає (записи згорнуті в пари «рівень × кількість»), тож
+   автоматично поділити неможливо — розподіл задається руками і живе
+   в localStorage поруч із тегом акаунта. */
+const STAGE1_FIXED=new Set([1000034,1000053]);   // Дім будівельника, Бойова машина
+const STAGE2_FIXED=new Set([1000078,1000080]);   // Аванпост О.Т.Т.О., Бойовий вертоліт
+let STAGES={}, stageView="all";
+
+function bucketKey(id,lvl){ return id+"|"+(lvl==null?"?":lvl); }
+function stagesKey(){ return KEY.stages+(MODEL&&MODEL.tag?MODEL.tag:"anon"); }
+function loadStages(){ STAGES=LS.json(stagesKey(),{})||{}; }
+function saveStages(){ LS.setJson(stagesKey(),STAGES); }
+function bbBuckets(){
+  const out=[];
+  ["buildings2","traps2"].forEach(k=>(MODEL.groups[k]||[]).forEach(g=>{
+    g.levels.forEach(l=>out.push({id:g.id,lvl:l.lvl,cnt:l.cnt,group:g,bucket:l}));
+  }));
+  return out.sort((a,b)=>a.id-b.id||(a.lvl||0)-(b.lvl||0));
+}
+function onStage2(b){
+  if(STAGE1_FIXED.has(b.id)) return 0;
+  if(STAGE2_FIXED.has(b.id)) return b.cnt;
+  const v=STAGES[bucketKey(b.id,b.lvl)];
+  return Math.max(0,Math.min(b.cnt,Number(v)||0));
+}
+function stageFixed(id){ return STAGE1_FIXED.has(id)||STAGE2_FIXED.has(id); }
+function splitEvenly(){
+  bbBuckets().forEach(b=>{
+    if(stageFixed(b.id)) return;
+    STAGES[bucketKey(b.id,b.lvl)]=Math.floor(b.cnt/2);
+  });
+  saveStages();
+}
+function resetStages(){ STAGES={}; saveStages(); }
+function stageStats(){
+  const blank=()=>({items:0,levels:0,weight:0,byType:{}});
+  const s=[blank(),blank()];
+  bbBuckets().forEach(b=>{
+    const n2=onStage2(b), n1=b.cnt-n2;
+    const r=ref(b.id), row=levelRow(b.id,b.lvl);
+    const w=(row&&row.strength_weight)||0;
+    const type=(r&&r.type)||"Інше";
+    [[0,n1],[1,n2]].forEach(([i,n])=>{
+      if(!n) return;
+      s[i].items+=n;
+      s[i].levels+=(b.lvl||0)*n;
+      s[i].weight+=w*n;
+      s[i].byType[type]=(s[i].byType[type]||0)+n;
+    });
+  });
+  s.forEach(x=>x.avg=x.items?(x.levels/x.items):0);
+  return s;
+}
+
+/* ============================================================
+   Знімки та прогрес
+   ============================================================ */
+function snapsKey(){ return KEY.snaps+(MODEL&&MODEL.tag?MODEL.tag:"anon"); }
+function digestOf(m){
+  const g={};
+  eachGroup(m,(grp,key)=>{
+    g[key]=g[key]||{};
+    const h={};
+    grp.levels.forEach(l=>h[l.lvl==null?"?":l.lvl]=l.cnt);
+    g[key][grp.id]=h;
+  });
+  return {tag:m.tag||null, ts:m.timestamp||null, saved:Math.floor(Date.now()/1000), g:g};
+}
+function loadSnaps(){ return LS.json(snapsKey(),[])||[]; }
+function saveSnapshot(m){
+  const snap=digestOf(m);
+  const list=loadSnaps();
+  const last=list[list.length-1];
+  if(last&&JSON.stringify(last.g)===JSON.stringify(snap.g)) return list;
+  list.push(snap);
+  while(list.length>12) list.shift();
+  LS.setJson(snapsKey(),list);
+  return list;
+}
+function snapLabel(s){
+  const ts=s.ts||s.saved;
+  return fmtDate(ts);
+}
+function diffSnaps(prev,cur){
+  const rows=[];
+  const keys=new Set(Object.keys(prev.g).concat(Object.keys(cur.g)));
+  keys.forEach(key=>{
+    const a=prev.g[key]||{}, b=cur.g[key]||{};
+    const ids=new Set(Object.keys(a).concat(Object.keys(b)));
+    ids.forEach(idStr=>{
+      const id=Number(idStr);
+      const ha=a[idStr]||{}, hb=b[idStr]||{};
+      if(JSON.stringify(ha)===JSON.stringify(hb)) return;
+      const lv=h=>{ const n=Object.keys(h).map(Number).filter(x=>!isNaN(x)); return n.length?Math.max(...n):null; };
+      const cnt=h=>Object.values(h).reduce((s,v)=>s+v,0);
+      const spent={};
+      const invest=h=>{ const t={}; Object.keys(h).forEach(k=>{ const l=Number(k); if(!isNaN(l)) mergeCosts(t,cumCost(id,l),h[k]); }); return t; };
+      const before=invest(ha), after=invest(hb);
+      new Set(Object.keys(before).concat(Object.keys(after))).forEach(r=>{
+        const d=(after[r]||0)-(before[r]||0);
+        if(d) spent[r]=d;
+      });
+      rows.push({id:id,section:key,from:lv(ha),to:lv(hb),cntFrom:cnt(ha),cntTo:cnt(hb),spent:spent});
+    });
+  });
+  return rows.sort((x,y)=>(y.to||0)-(y.from||0)-((x.to||0)-(x.from||0)));
+}
+
+/* ============================================================
+   Дрібні рендер-хелпери
+   ============================================================ */
+function segColor(lvl,min,max){
+  const lo=hexToRgb(cssVar("--seg-lo")||"#42586B"), hi=hexToRgb(cssVar("--seg-hi")||"#E9B44C");
+  if(lvl===null) return "rgb("+lo.join(",")+")";
+  if(max===min||max==null||min==null) return "rgb("+hi.join(",")+")";
+  const t=Math.max(0,Math.min(1,(lvl-min)/(max-min)));
+  return "rgb("+lo.map((v,i)=>Math.round(v+(hi[i]-v)*t)).join(",")+")";
+}
+function ribbon(g,cap){
+  return '<div class="ribbon">'+g.levels.map(l=>{
+    const behind=(cap!=null&&l.lvl!=null&&l.lvl<cap);
+    const busy=l.flags.includes("timer");
+    const title=(l.lvl===null?"без рівня":"рівень "+l.lvl)+" × "+l.cnt+
+      (behind?" — до максимуму +"+(cap-l.lvl):" — максимум")+(busy?", у прокачці":"");
+    return '<div class="seg'+(behind?" gap":"")+(busy?" busy":"")+'" style="flex-grow:'+l.cnt+
+      ';background:'+segColor(l.lvl,g.min,g.max)+'" title="'+esc(title)+'">'+
+      (l.lvl===null?"—":l.lvl)+(l.cnt>1?'<span class="c">×'+l.cnt+'</span>':'')+'</div>';
+  }).join("")+'</div>';
+}
+function flagChips(g){
+  const all=[];
+  g.levels.forEach(l=>l.flags.forEach(f=>{ if(!all.includes(f)) all.push(f); }));
+  let html=all.map(f=>{
+    if(f==="timer") return '<span class="flag warn">у прокачці</span>';
+    if(f==="gear_up") return '<span class="flag gold">gear up</span>';
+    if(f.startsWith("weapon")) return '<span class="flag gold">зброя '+esc(f.slice(6))+'</span>';
+    if(f==="helper") return '<span class="flag">хелпер</span>';
+    if(f==="modules") return '<span class="flag">модулі</span>';
+    if(f==="cooldown") return '<span class="flag warn">кулдаун</span>';
+    return "";
+  }).join("");
+  if(!isKnown(g.id)) html+='<span class="flag alert">поза довідником</span>';
+  return html?'<div class="flags">'+html+'</div>':'';
+}
+function capCell(g,cap){
+  if(cap==null) return '<div class="cap muted">—</div>';
+  const behind=g.levels.filter(l=>l.lvl!=null&&l.lvl<cap).reduce((s,l)=>s+(cap-l.lvl)*l.cnt,0);
+  return '<div class="cap"><span class="max">'+cap+'</span><br>'+
+    (behind?'<span class="todo">+'+behind+'</span>':'<span class="done">готово</span>')+'</div>';
+}
+const TYPE_ORDER=["Town Hall","BB Builder Hall","Defense","Wall","Army","Resource","Worker","Worker2","Helper","Trap","Інше"];
+function renderGrouped(list,opts){
+  opts=opts||{};
+  const all=list||[];
+  const shown=filterGroups(all);
+  if(!all.length) return '<p class="empty">Порожньо.</p>';
+  if(!shown.length) return '<p class="empty">Нічого не підійшло під фільтри.</p>';
+  const byType={};
+  shown.forEach(g=>{
+    const r=ref(g.id);
+    const t=(r&&r.type)||"Інше";
+    (byType[t]=byType[t]||[]).push(g);
+  });
+  const keys=Object.keys(byType).sort((a,b)=>{
+    const ia=TYPE_ORDER.indexOf(a), ib=TYPE_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b,"uk");
+  });
+  return filterNote(all.length,shown.length)+keys.map(t=>{
+    const rows=byType[t].map(g=>{
+      const cap=capOf(g.id,g.village);
+      const count=opts.count?opts.count(g):g.total;
+      return '<div class="item"><div class="name">'+esc(nameOf(g.id))+'<span class="id">'+g.id+'</span></div>'+
+        '<div class="qty"><b>'+count+'</b> шт</div>'+
+        '<div>'+ribbon(g,cap)+flagChips(g)+'</div>'+capCell(g,cap)+'</div>';
+    }).join("");
+    return '<div class="group"><h3>'+esc(t)+'<span class="tag">'+byType[t].length+'</span></h3>'+rows+'</div>';
+  }).join("");
+}
+function renderFlat(list,title){
+  const all=list||[];
+  const shown=filterGroups(all);
+  const head=title?'<h3>'+esc(title)+'<span class="tag">'+shown.length+'</span></h3>':"";
+  if(!all.length) return '<div class="group">'+head+'<p class="empty">Порожньо.</p></div>';
+  if(!shown.length) return '<div class="group">'+head+'<p class="empty">Нічого не підійшло під фільтри.</p></div>';
+  const sorted=shown.slice().sort((a,b)=>(b.max||0)-(a.max||0));
+  const hi=Math.max(...sorted.map(g=>g.max||0)), lo=Math.min(...sorted.map(g=>g.max||0));
+  const body=sorted.map(g=>{
+    const cap=capOf(g.id,g.village);
+    const gap=(cap!=null&&g.max!=null)?cap-g.max:null;
+    return '<tr><td data-label="Назва" data-sort="'+esc(nameOf(g.id))+'">'+esc(nameOf(g.id))+'</td>'+
+      '<td class="num muted" data-label="ID" data-sort="'+g.id+'">'+g.id+'</td>'+
+      '<td class="num" data-label="Рівень" data-sort="'+(g.max==null?-1:g.max)+'"><span class="lvlchip" style="background:'+segColor(g.max,lo,hi)+'">'+(g.max==null?"—":g.max)+'</span></td>'+
+      '<td class="num" data-label="Максимум" data-sort="'+(gap==null?-1:gap)+'">'+(cap==null?'<span class="muted">—</span>':
+        '<span style="color:var(--gold)">'+cap+'</span>'+(gap>0?' <span style="color:var(--warn)">+'+gap+'</span>':
+        ' <span style="color:var(--teal)">✓</span>'))+'</td>'+
+      '<td data-label="Стан">'+(flagChips(g)||'<span class="muted">—</span>')+'</td></tr>';
+  }).join("");
+  return '<div class="group">'+head+'<div class="scroll"><table class="plain cards"><thead><tr><th>Назва</th><th>ID</th>'+
+    '<th style="text-align:right">Рівень</th><th style="text-align:right">Максимум</th><th>Стан</th></tr></thead><tbody>'+
+    body+'</tbody></table></div></div>';
+}
+
+/* ============================================================
+   Підсумок і попередження
+   ============================================================ */
+function detectHalls(m){
+  const th=(m.groups.buildings||[]).find(g=>g.id===1000001);
+  const bh=(m.groups.buildings2||[]).find(g=>g.id===1000034);
+  return {th:th?th.max:null, bh:bh?bh.max:null};
+}
+function buildersHome(){
+  const huts=(MODEL.groups.buildings||[]).find(g=>g.id===1000015);
+  return Math.max(1,huts?huts.total:1);
+}
+function buildersBB(){
+  const boto=(MODEL.groups.buildings2||[]).find(g=>g.id===1000047);
+  return boto?2:1;
+}
+function renderSummary(m){
+  const b=m.groups.buildings||[];
+  const huts=b.find(g=>g.id===1000015), walls=b.find(g=>g.id===1000010);
+  const heroes=m.groups.heroes||[];
+  const active=m.timers.filter(t=>!t.cooldown);
+  const det=detectHalls(m);
+
+  let wallAvg="—";
+  if(walls){
+    const ok=walls.levels.filter(l=>l.lvl!=null);
+    const cnt=ok.reduce((s,l)=>s+l.cnt,0);
+    if(cnt) wallAvg=(ok.reduce((s,l)=>s+l.lvl*l.cnt,0)/cnt).toFixed(2);
+  }
+
+  /* позиції, що відстають, і найглибше відставання — без множення на кількість */
+  let behind=0, deepest=0, maxed=0;
+  eachGroup(m,g=>{
+    const cap=capOf(g.id,g.village); if(cap==null) return;
+    g.levels.forEach(l=>{
+      if(l.lvl==null) return;
+      if(l.lvl<cap){ behind++; deepest=Math.max(deepest,cap-l.lvl); }
+      else maxed+=l.cnt;
+    });
+  });
+
+  const known=DB.size>0;
+  const cards=[
+    {k:"Ратуша",v:det.th==null?"—":det.th,sub:"дім будівельника "+(det.bh==null?"—":det.bh),gold:true},
+    {k:"Будівельники",v:huts?huts.total:"—",sub:active.length?active.length+" зайнято":"вільні"},
+    {k:"Стіни",v:walls?walls.total:"—",sub:walls?"середній "+wallAvg:""},
+    {k:"Герої",v:heroes.length,sub:heroes.map(h=>h.max).join(" / ")},
+    {k:"Відстає позицій",v:known?num(behind):"—",
+     sub:known?"найглибше −"+deepest+" · "+num(maxed)+" в максимумі":"потрібен довідник",alert:behind>0},
+    {k:"У роботі",v:active.length,sub:active.length?"див. вкладку":"нічого"}
+  ];
+  $("#summary").innerHTML=cards.map(c=>
+    '<div class="stat"><div class="k">'+esc(c.k)+'</div><div class="v'+(c.gold?" gold":"")+(c.alert?" alert":"")+'">'+
+    esc(c.v)+'</div><div class="sub">'+esc(c.sub||"")+'</div></div>').join("");
+
+  $("#stamp").innerHTML=(m.tag?esc(m.tag)+"<br>":"")+(m.timestamp?"знімок "+fmtDate(m.timestamp):"");
+}
+function renderNotices(m){
+  let html="";
+  if(REF.state==="loading") html+='<div class="notice info">Довідник ще вантажиться — назви й стелі з\'являться за секунду.</div>';
+  m.warns.forEach(w=>{ html+='<div class="notice">'+w+'</div>'; });
+  const unknown=collectUnknown(m);
+  if(unknown.length) html+='<div class="notice bad"><b>'+unknown.length+'</b> ID немає навіть у джерелі — див. «Діагностику».</div>';
+  if(m.unknownKeys.length) html+='<div class="notice">У дампі є розділи, яких інструмент не читає: <code>'+
+    m.unknownKeys.map(k=>esc(k.key)).join("</code>, <code>")+'</code>. Деталі — у «Діагностиці».</div>';
+  $("#notices").innerHTML=html;
+}
+function collectUnknown(m){
+  const out=new Set();
+  eachGroup(m,g=>{ if(!isKnown(g.id)) out.add(g.id); });
+  (m.raw.buildings||[]).forEach(o=>(o.types||[]).forEach(t=>{
+    if(!isKnown(t.data)) out.add(t.data);
+    (t.modules||[]).forEach(x=>{ if(!isKnown(x.data)) out.add(x.data); });
+  }));
+  m.boosts.forEach(b=>{ if(!isKnown(b.id)) out.add(b.id); });
+  return [...out].sort((a,b)=>a-b);
+}
+
+/* ============================================================
+   Вкладка: що прокачати
+   ============================================================ */
+let PLAN_ROWS=[];
+function planRows(m){
+  const rows=[];
+  eachGroup(m,(g,key)=>{
+    const sec=sectionOf(key);
+    const cap=capOf(g.id,g.village); if(cap==null) return;
+    g.levels.forEach(l=>{
+      if(l.lvl==null||l.lvl>=cap) return;
+      const c=costTo(g.id,l.lvl,cap);
+      const costs={};
+      Object.keys(c.costs).forEach(res=>costs[res]=c.costs[res]*l.cnt);
+      rows.push({name:nameOf(g.id),id:g.id,lvl:l.lvl,cnt:l.cnt,cap:cap,
+        gap:cap-l.lvl, costs:costs,
+        total:Object.values(costs).reduce((s,v)=>s+v,0),
+        time:c.time*l.cnt, village:g.village, kind:sec.kind||"extra"});
+    });
+  });
+  return rows.sort((a,b)=>b.gap-a.gap||b.cnt-a.cnt);
+}
+const TIME_BUCKETS=[
+  {kind:"build", village:"home",    label:"Будівництво", note:b=>"паралельно, "+b+" "+plural(b,"будівельник","будівельники","будівельників")},
+  {kind:"build", village:"builder", label:"Будівництво ББ", note:b=>"паралельно, "+b+" "+plural(b,"будівельник","будівельники","будівельників")},
+  {kind:"lab",   village:null,      label:"Лабораторія",  note:()=>"черга по одному"},
+  {kind:"hero",  village:null,      label:"Герої",        note:()=>"черга по одному"},
+  {kind:"pet",   village:null,      label:"Улюбленці",    note:()=>"черга по одному"},
+  {kind:"guard", village:null,      label:"Хранителі",    note:()=>"черга по одному"}
+];
+function renderPlan(m){
+  if(!DB.size) return '<p class="empty">Довідник не завантажився — план прокачки порахувати нема з чого.</p>';
+  const all=planRows(m);
+  const rows=all.filter(r=>{
+    if(!passId(r.id)) return false;
+    if(FILTER.village!=="all"&&r.village!==FILTER.village) return false;
+    return true;
+  });
+  PLAN_ROWS=rows;
+  if(!all.length) return '<p class="empty">Усе на максимумі для цього рівня залу.</p>';
+  if(!rows.length) return '<p class="empty">Нічого не підійшло під фільтри.</p>';
+
+  const byRes={};
+  rows.forEach(r=>mergeCosts(byRes,r.costs));
+  const deepest=Math.max(...rows.map(r=>r.gap));
+
+  const times=TIME_BUCKETS.map(b=>{
+    const sec=rows.filter(r=>r.kind===b.kind&&(!b.village||r.village===b.village))
+                  .reduce((s,r)=>s+r.time,0);
+    if(!sec) return null;
+    const workers=b.kind==="build"?(b.village==="builder"?buildersBB():buildersHome()):1;
+    return {label:b.label,sec:Math.round(sec/workers),note:b.note(workers)};
+  }).filter(Boolean);
+
+  const summary='<div class="summary compact" style="margin-top:0">'+
+    '<div class="stat"><div class="k">Позицій у плані</div><div class="v gold">'+rows.length+'</div>'+
+    '<div class="sub">найглибше −'+deepest+' '+plural(deepest,"рівень","рівні","рівнів")+'</div></div>'+
+    Object.keys(byRes).filter(r=>byRes[r]>0).sort((a,b)=>byRes[b]-byRes[a]).map(r=>
+      '<div class="stat"><div class="k">'+esc(r)+'</div>'+
+      '<div class="v"><span class="res '+resSlug(r)+'">'+num(byRes[r])+'</span></div>'+
+      '<div class="sub">разом до максимуму</div></div>').join("")+
+    times.map(t=>'<div class="stat"><div class="k">'+esc(t.label)+'</div><div class="v teal">'+days(t.sec)+'</div>'+
+      '<div class="sub">'+esc(t.note)+'</div></div>').join("")+
+    '</div>';
+
+  const body=rows.map(r=>'<tr><td data-label="Що" data-sort="'+esc(r.name)+'">'+esc(r.name)+'</td>'+
+    '<td data-label="Село" style="color:var(--dim)">'+(r.village==="builder"?"Builder Base":"Головне")+'</td>'+
+    '<td class="num" data-label="Зараз" data-sort="'+r.lvl+'"><span class="lvlchip" style="background:var(--panelhi);color:var(--txt)">'+r.lvl+'</span></td>'+
+    '<td class="num" data-label="Максимум" data-sort="'+r.cap+'" style="color:var(--gold)">'+r.cap+'</td>'+
+    '<td class="num" data-label="Бракує" data-sort="'+r.gap+'" style="color:var(--warn)">−'+r.gap+'</td>'+
+    '<td class="num" data-label="Кількість" data-sort="'+r.cnt+'">×'+r.cnt+'</td>'+
+    '<td class="num" data-label="Час" data-sort="'+r.time+'">'+(r.time?days(r.time):'<span class="muted">—</span>')+'</td>'+
+    '<td class="num" data-label="Вартість" data-sort="'+r.total+'">'+resCell(r.costs)+'</td></tr>').join("");
+
+  return '<p class="hint">Колонка «Бракує» — це відставання однієї будівлі, не помножене на кількість: у 150 стін відставання −3, а не −450. '+
+    'На кількість множиться вартість і час, бо платити доведеться за кожну. Час угорі поділено на будівельників, '+
+    'а лабораторія, герої та улюбленці рахуються як послідовні черги. Клік по заголовку сортує.</p>'+
+    summary+
+    '<div class="scroll"><table class="plain cards"><thead><tr><th>Що</th><th>Село</th>'+
+    '<th style="text-align:right">Зараз</th><th style="text-align:right">Максимум</th>'+
+    '<th style="text-align:right">Бракує</th><th style="text-align:right">Кількість</th>'+
+    '<th style="text-align:right">Час</th><th style="text-align:right">Вартість</th></tr></thead><tbody>'+
+    body+'</tbody></table></div>'+renderLateGame(m);
+}
+
+/* Supercharge і злиття — це вже пізня гра, тож блок показуємо лише тоді,
+   коли ратуша до нього доросла, щоб не смітити всім іншим. */
+function renderLateGame(m){
+  let html="";
+  if(TH>=17){
+    const list=[];
+    (m.groups.buildings||[]).forEach(g=>{
+      const r=ref(g.id); if(!r) return;
+      const top=maxLevelOf(g.id);
+      const row=levelRow(g.id,top);
+      if(!row||!row.supercharge||!row.supercharge.levels.length) return;
+      const ready=g.levels.filter(l=>l.lvl===top).reduce((s,l)=>s+l.cnt,0);
+      if(!ready) return;
+      const costs={}; let time=0;
+      row.supercharge.levels.forEach(l=>{
+        if(l.build_cost) costs[resLabel(row.supercharge.upgrade_resource||r.resource||"?")]=
+          (costs[resLabel(row.supercharge.upgrade_resource||r.resource||"?")]||0)+l.build_cost*ready;
+        time+=l.build_time||0;
+      });
+      list.push({id:g.id,name:nameOf(g.id),ready:ready,steps:row.supercharge.levels.length,costs:costs,time:time*ready});
+    });
+    if(list.length){
+      list.sort((a,b)=>b.ready-a.ready);
+      html+='<div class="group"><h3>Supercharge<span class="tag">'+list.length+'</span></h3>'+
+        '<p class="hint">Будівлі, які вже на стелі даних і мають запас supercharge. Вартість — за всі копії разом.</p>'+
+        '<div class="scroll"><table class="plain cards"><thead><tr><th>Будівля</th>'+
+        '<th style="text-align:right">Готових</th><th style="text-align:right">Кроків</th>'+
+        '<th style="text-align:right">Час</th><th style="text-align:right">Вартість</th></tr></thead><tbody>'+
+        list.map(x=>'<tr><td data-label="Будівля">'+esc(x.name)+'</td>'+
+          '<td class="num" data-label="Готових" data-sort="'+x.ready+'">×'+x.ready+'</td>'+
+          '<td class="num" data-label="Кроків" data-sort="'+x.steps+'">'+x.steps+'</td>'+
+          '<td class="num" data-label="Час" data-sort="'+x.time+'">'+days(x.time)+'</td>'+
+          '<td class="num" data-label="Вартість">'+resCell(x.costs)+'</td></tr>').join("")+
+        '</tbody></table></div></div>';
+    }
+  }
+  if(TH>=16){
+    const merges=[];
+    DB.forEach(r=>{
+      if(r.village==="builderBase") return;
+      r.levels.forEach(l=>{
+        if(!Array.isArray(l.merge_requirement)||!l.merge_requirement.length) return;
+        const need={};
+        l.merge_requirement.forEach(q=>{
+          const k=q._id+"|"+q.level+"|"+(q.geared_up?1:0);
+          need[k]=need[k]||{id:q._id,name:q.name,level:q.level,geared:!!q.geared_up,n:0};
+          need[k].n++;
+        });
+        const parts=Object.values(need).map(q=>{
+          const g=(MODEL.groups.buildings||[]).find(x=>x.id===q.id);
+          let have=0;
+          if(g) g.levels.forEach(b=>{
+            if(b.lvl==null||b.lvl<q.level) return;
+            have+=q.geared?b.gear:(b.cnt-b.gear);
+          });
+          return Object.assign({have:have},q);
+        });
+        merges.push({id:r.id,name:r.name,level:l.level,parts:parts,
+          ready:parts.every(p=>p.have>=p.n)});
+      });
+    });
+    if(merges.length){
+      merges.sort((a,b)=>(b.ready?1:0)-(a.ready?1:0)||a.name.localeCompare(b.name,"uk"));
+      html+='<div class="group"><h3>Злиття будівель<span class="tag">'+merges.length+'</span></h3>'+
+        '<p class="hint">Що з чого збирається і чи вистачає у тебе джерел потрібного рівня. «gear up» враховано окремо.</p>'+
+        '<div class="scroll"><table class="plain cards"><thead><tr><th>Результат</th><th>Потрібно</th>'+
+        '<th style="text-align:right">Стан</th></tr></thead><tbody>'+
+        merges.map(x=>'<tr><td data-label="Результат">'+esc(x.name)+(x.level>1?' <span class="muted">рів. '+x.level+'</span>':'')+'</td>'+
+          '<td data-label="Потрібно">'+x.parts.map(p=>
+            '<span class="'+(p.have>=p.n?"up":"muted")+'">'+esc(p.name)+' ×'+p.n+' рів. '+p.level+
+            (p.geared?" (gear up)":"")+' — є '+p.have+'</span>').join("<br>")+'</td>'+
+          '<td class="num" data-label="Стан" data-sort="'+(x.ready?1:0)+'">'+
+          (x.ready?'<span class="up">готово</span>':'<span class="muted">ще ні</span>')+'</td></tr>').join("")+
+        '</tbody></table></div></div>';
+    }
+  }
+  return html;
+}
+
+/* ============================================================
+   Вкладка: Builder Base
+   ============================================================ */
+function renderBB(m){
+  const bb=(m.groups.buildings2||[]).concat(m.groups.traps2||[]);
+  if(!bb.length) return '<p class="empty">У дампі немає Builder Base.</p>';
+  const out=[];
+  const outpost=(m.groups.buildings2||[]).find(g=>g.id===1000078);
+  const outLvl=outpost?outpost.max:null;
+  const stats=stageStats();
+  const totalW=stats[0].weight+stats[1].weight;
+
+  out.push('<div class="stagecards">'+[0,1].map(i=>{
+    const s=stats[i];
+    const hall=i===0?("Дім будівельника "+(BH==null?"—":BH)):("Аванпост О.Т.Т.О. "+(outLvl==null?"—":outLvl)+
+      (outLvl!=null&&BH!=null&&outLvl<BH?" · відстає на "+(BH-outLvl):""));
+    const types=Object.keys(s.byType).sort((a,b)=>s.byType[b]-s.byType[a]).slice(0,3)
+      .map(t=>esc(t)+" "+s.byType[t]).join(" · ");
+    const share=totalW?Math.round(s.weight/totalW*100):50;
+    return '<div class="stagecard"><h4>'+(i===0?"Етап 1":"Етап 2")+'</h4>'+
+      '<div class="hall">'+esc(hall)+'</div>'+
+      '<dl><dt>Будівель</dt><dd>'+s.items+'</dd>'+
+      '<dt>Середній рівень</dt><dd>'+(s.items?s.avg.toFixed(2):"—")+'</dd>'+
+      '<dt>Сила (weight)</dt><dd>'+num(s.weight)+'</dd></dl>'+
+      '<div class="bar"><i style="width:'+share+'%;background:'+(i===0?"var(--gold)":"var(--teal)")+'"></i></div>'+
+      '<div class="hall" style="margin:8px 0 0">'+(types||"—")+'</div></div>';
+  }).join("")+'</div>');
+
+  out.push('<div class="stagebar">'+
+    [["all","Разом"],["s1","Етап 1"],["s2","Етап 2"],["edit","Розподіл"]].map(([v,l])=>
+      '<button data-stage="'+v+'" aria-pressed="'+(stageView===v)+'">'+l+'</button>').join("")+'</div>');
+
+  if(stageView==="edit"){
+    out.push(renderStageEditor());
+  }else if(stageView==="all"){
+    out.push(renderGrouped(bb));
+  }else{
+    const want=stageView==="s2"?1:0;
+    const counts={};
+    bbBuckets().forEach(b=>{
+      const n2=onStage2(b), n=want?n2:b.cnt-n2;
+      if(!n) return;
+      counts[b.id]=counts[b.id]||{};
+      counts[b.id][String(b.lvl)]=n;
+    });
+    const list=bb.map(g=>{
+      const c=counts[g.id]; if(!c) return null;
+      const levels=g.levels.filter(l=>c[String(l.lvl)]).map(l=>Object.assign({},l,{cnt:c[String(l.lvl)]}));
+      if(!levels.length) return null;
+      const nums=levels.map(l=>l.lvl).filter(l=>l!=null);
+      return Object.assign({},g,{levels:levels,total:levels.reduce((s,l)=>s+l.cnt,0),
+        min:nums.length?Math.min(...nums):null,max:nums.length?Math.max(...nums):null});
+    }).filter(Boolean);
+    out.push(list.length?renderGrouped(list):'<p class="empty">На цьому етапі нічого не призначено — заповни «Розподіл».</p>');
+  }
+  return out.join("");
+}
+function renderStageEditor(){
+  const buckets=bbBuckets();
+  const rows=buckets.filter(b=>passId(b.id)).map(b=>{
+    const n2=onStage2(b), fixed=stageFixed(b.id);
+    return '<tr><td data-label="Будівля">'+esc(nameOf(b.id))+'</td>'+
+      '<td class="num" data-label="Рівень" data-sort="'+(b.lvl||0)+'">'+(b.lvl==null?"—":b.lvl)+'</td>'+
+      '<td class="num" data-label="Всього" data-sort="'+b.cnt+'">'+b.cnt+'</td>'+
+      '<td class="num" data-label="Етап 1" data-sort="'+(b.cnt-n2)+'">'+(b.cnt-n2)+'</td>'+
+      '<td class="num" data-label="Етап 2">'+(fixed
+        ? '<span class="muted">'+n2+' (фіксовано)</span>'
+        : '<input type="number" min="0" max="'+b.cnt+'" value="'+n2+'" data-bucket="'+bucketKey(b.id,b.lvl)+'" data-max="'+b.cnt+'">')+
+      '</td></tr>';
+  }).join("");
+  return '<div class="group assign"><h3>Розподіл між етапами</h3>'+
+    '<p class="hint">У дампі немає координат — гра зберігає лише «скільки будівель якого рівня», '+
+    'тому хто саме стоїть на другому етапі, доводиться вказати руками. Дім будівельника з бойовою машиною '+
+    'і аванпост із вертольотом розставлені самі. Розподіл зберігається в браузері окремо для кожного тега.</p>'+
+    '<div class="row" style="margin:0 0 12px"><button class="ghost tiny" id="stageHalf">Порівну</button>'+
+    '<button class="ghost tiny" id="stageReset">Скинути</button></div>'+
+    '<div class="scroll"><table class="plain cards"><thead><tr><th>Будівля</th>'+
+    '<th style="text-align:right">Рівень</th><th style="text-align:right">Всього</th>'+
+    '<th style="text-align:right">Етап 1</th><th style="text-align:right">Етап 2</th></tr></thead><tbody>'+
+    rows+'</tbody></table></div></div>';
+}
+
+/* ============================================================
+   Вкладка: спорядження
+   ============================================================ */
+function renderGear(m){
+  const list=filterGroups(m.groups.equipment||[]);
+  if(!(m.groups.equipment||[]).length) return '<p class="empty">У дампі немає спорядження.</p>';
+  if(!list.length) return '<p class="empty">Нічого не підійшло під фільтри.</p>';
+  const byHero={};
+  list.forEach(g=>{
+    const r=ref(g.id);
+    const hero=(r&&r.hero)||"Без героя";
+    (byHero[hero]=byHero[hero]||[]).push(g);
+  });
+  const ore={};
+  list.forEach(g=>{
+    const cap=capOf(g.id,g.village); if(cap==null||g.max==null) return;
+    mergeCosts(ore,costTo(g.id,g.max,cap).costs);
+  });
+  const budget=Object.keys(ore).length?'<div class="summary compact" style="margin-top:0">'+
+    Object.keys(ore).sort((a,b)=>ore[b]-ore[a]).map(r=>
+      '<div class="stat"><div class="k">'+esc(r)+'</div><div class="v"><span class="res '+resSlug(r)+'">'+num(ore[r])+'</span></div>'+
+      '<div class="sub">до максимуму</div></div>').join("")+'</div>':"";
+  const order=["Barbarian King","Archer Queen","Minion Prince","Grand Warden","Royal Champion","Dragon Duke","Без героя"];
+  const keys=Object.keys(byHero).sort((a,b)=>{
+    const ia=order.indexOf(a), ib=order.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b,"uk");
+  });
+  return '<p class="hint">Руда — головне вузьке місце спорядження, тому згори сумарний бюджет до максимуму, '+
+    'а далі — розклад по героях. Рідкість береться з довідника.</p>'+budget+
+    keys.map(h=>{
+      const rows=byHero[h].slice().sort((a,b)=>(b.max||0)-(a.max||0)).map(g=>{
+        const cap=capOf(g.id,g.village);
+        const gap=(cap!=null&&g.max!=null)?cap-g.max:null;
+        const r=ref(g.id);
+        const cost=(cap!=null&&g.max!=null)?costTo(g.id,g.max,cap).costs:{};
+        return '<tr><td data-label="Спорядження" data-sort="'+esc(nameOf(g.id))+'">'+esc(nameOf(g.id))+'</td>'+
+          '<td data-label="Рідкість" class="muted">'+esc((r&&r.rarity)||"—")+'</td>'+
+          '<td class="num" data-label="Рівень" data-sort="'+(g.max==null?-1:g.max)+'">'+(g.max==null?"—":g.max)+'</td>'+
+          '<td class="num" data-label="Максимум" data-sort="'+(gap==null?-1:gap)+'">'+(cap==null?'<span class="muted">—</span>':
+            '<span style="color:var(--gold)">'+cap+'</span>'+(gap>0?' <span style="color:var(--warn)">+'+gap+'</span>':' <span style="color:var(--teal)">✓</span>'))+'</td>'+
+          '<td class="num" data-label="Руда">'+resCell(cost)+'</td></tr>';
+      }).join("");
+      return '<div class="group"><h3>'+esc(h)+'<span class="tag">'+byHero[h].length+'</span></h3>'+
+        '<div class="scroll"><table class="plain cards"><thead><tr><th>Спорядження</th><th>Рідкість</th>'+
+        '<th style="text-align:right">Рівень</th><th style="text-align:right">Максимум</th>'+
+        '<th style="text-align:right">Руда до максимуму</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    }).join("");
+}
+
+/* ============================================================
+   Вкладка: прогрес
+   ============================================================ */
+let compareWith=null;
+function renderProgress(m){
+  const snaps=loadSnaps();
+  if(!LS.ok()) return '<p class="empty">Браузер не дає зберігати дані сайту — історію знімків вести нема де.</p>';
+  if(snaps.length<2) return '<p class="hint">Кожен розбір відкладає знімок бази в localStorage (до 12 штук, окремо на кожен тег). '+
+    'Зараз знімок '+snaps.length+' — повернися сюди після наступного дампу, і тут з\'явиться, що виросло й скільки це коштувало.</p>';
+  const cur=snaps[snaps.length-1];
+  const options=snaps.slice(0,-1);
+  const chosen=options.find(s=>String(s.saved)===String(compareWith))||options[options.length-1];
+  const rows=diffSnaps(chosen,cur).filter(r=>passId(r.id));
+  const spent={};
+  rows.forEach(r=>Object.keys(r.spent).forEach(k=>spent[k]=(spent[k]||0)+r.spent[k]));
+  const levels=rows.reduce((s,r)=>s+Math.max(0,(r.to||0)-(r.from||0)),0);
+  const span=(cur.ts||cur.saved)-(chosen.ts||chosen.saved);
+
+  const picker='<div class="row" style="margin:0 0 14px"><label class="chk">Порівняти з'+
+    '<select id="cmpSel">'+options.map(s=>'<option value="'+s.saved+'"'+(s===chosen?" selected":"")+'>'+esc(snapLabel(s))+'</option>').join("")+
+    '</select></label><span class="spacer"></span><button class="ghost tiny" id="snapClear">Очистити історію</button></div>';
+
+  const cards='<div class="summary compact" style="margin-top:0">'+
+    '<div class="stat"><div class="k">Позицій змінилось</div><div class="v gold">'+rows.length+'</div>'+
+    '<div class="sub">за '+(span>0?days(span):"—")+'</div></div>'+
+    '<div class="stat"><div class="k">Рівнів набрано</div><div class="v teal">'+levels+'</div><div class="sub">сумарно</div></div>'+
+    Object.keys(spent).filter(k=>spent[k]>0).sort((a,b)=>spent[b]-spent[a]).map(k=>
+      '<div class="stat"><div class="k">'+esc(k)+'</div><div class="v"><span class="res '+resSlug(k)+'">'+num(spent[k])+'</span></div>'+
+      '<div class="sub">вкладено (оцінка)</div></div>').join("")+'</div>';
+
+  if(!rows.length) return picker+'<p class="empty">Між цими знімками нічого не змінилося.</p>';
+
+  const body=rows.map(r=>{
+    const sec=MODEL.sections.find(s=>s.key===r.section);
+    return '<tr><td data-label="Що" data-sort="'+esc(nameOf(r.id))+'">'+esc(nameOf(r.id))+'</td>'+
+      '<td data-label="Розділ" class="muted">'+esc(sec?sec.label:r.section)+'</td>'+
+      '<td class="num" data-label="Було" data-sort="'+(r.from==null?-1:r.from)+'">'+(r.from==null?"—":r.from)+'</td>'+
+      '<td class="num" data-label="Стало" data-sort="'+(r.to==null?-1:r.to)+'"><span class="'+((r.to||0)>(r.from||0)?"up":"muted")+'">'+(r.to==null?"—":r.to)+'</span></td>'+
+      '<td class="num" data-label="Кількість" data-sort="'+(r.cntTo-r.cntFrom)+'">'+
+        (r.cntTo!==r.cntFrom?'<span class="'+(r.cntTo>r.cntFrom?"up":"down")+'">'+(r.cntTo>r.cntFrom?"+":"")+(r.cntTo-r.cntFrom)+'</span>':'<span class="muted">—</span>')+'</td>'+
+      '<td class="num" data-label="Вкладено">'+resCell(r.spent)+'</td></tr>';
+  }).join("");
+
+  return picker+cards+'<p class="hint">«Вкладено» — оцінка: сума вартості всіх рівнів на момент знімка, різниця між ними. '+
+    'Нові будівлі рахуються повністю, знесені йдуть у мінус.</p>'+
+    '<div class="scroll"><table class="plain cards"><thead><tr><th>Що</th><th>Розділ</th>'+
+    '<th style="text-align:right">Було</th><th style="text-align:right">Стало</th>'+
+    '<th style="text-align:right">Кількість</th><th style="text-align:right">Вкладено</th></tr></thead><tbody>'+
+    body+'</tbody></table></div>';
+}
+
+/* ============================================================
+   Вкладки: таймери й діагностика
+   ============================================================ */
+function renderTimers(m){
+  if(!m.timers.length) return '<p class="empty">Нічого не прокачується.</p>';
+  const base=m.timestamp||Math.floor(Date.now()/1000), now=Math.floor(Date.now()/1000);
+  return '<p class="hint">Таймери у файлі — залишок на момент знімка. «Буде готово» рахується від часу знімка, остання колонка — від зараз.</p>'+
+    '<div class="scroll"><table class="plain cards"><thead><tr><th>Що</th><th>Село</th>'+
+    '<th style="text-align:right">Залишалось</th><th style="text-align:right">Буде готово</th>'+
+    '<th style="text-align:right">Лишилось зараз</th></tr></thead><tbody>'+
+    m.timers.slice().sort((a,b)=>a.seconds-b.seconds).map(t=>{
+      const eta=base+t.seconds, left=eta-now;
+      return '<tr><td data-label="Що" data-sort="'+esc(nameOf(t.id))+'">'+esc(nameOf(t.id))+
+        (t.lvl!=null?' <span class="muted">рів. '+t.lvl+'</span>':'')+
+        (t.cooldown?' <span class="flag warn">кулдаун</span>':'')+'</td>'+
+        '<td data-label="Село" style="color:var(--dim)">'+(t.village==="builder"?"Builder Base":"Головне")+'</td>'+
+        '<td class="num" data-label="Залишалось" data-sort="'+t.seconds+'">'+hms(t.seconds)+'</td>'+
+        '<td class="num" data-label="Буде готово" data-sort="'+eta+'" style="color:var(--gold)">'+fmtDate(eta)+'</td>'+
+        '<td class="num" data-label="Лишилось" data-sort="'+left+'" style="color:'+(left<=0?"var(--teal)":"var(--dim)")+'">'+
+        (left<=0?"готово":hms(left))+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+}
+function renderDiag(m){
+  const out=[];
+  const ids=collectUnknown(m);
+
+  const meta=REF.meta;
+  out.push('<div class="group"><h3>Довідник</h3><div class="scroll"><table class="plain cards"><tbody>'+
+    [["Джерело",{cache:"кеш браузера",bundle:"локальний бандл (data/ref.min.json)",files:"локальні файли",raw:"ClashKing (raw)"}[REF.source]||"—"],
+     ["Версія",meta?meta.version:"—"],
+     ["Дані оновлено",meta?((meta.upstream&&meta.upstream.date)||meta.generated_at)+" ("+ageText((meta.upstream&&meta.upstream.date)||meta.generated_at)+")":"—"],
+     ["Коміт upstream",meta&&meta.upstream&&meta.upstream.sha?meta.upstream.sha.slice(0,10):"—"],
+     ["Записів у пам'яті",DB.size],
+     ["Обсяг",Math.round(REF.bytes/1024)+" КБ"],
+     ["Помилки",REF.failed.length?REF.failed.join(" · "):"немає"]]
+    .map(([k,v])=>'<tr><td data-label="Параметр" style="color:var(--dim)">'+esc(k)+'</td><td data-label="Значення">'+esc(v)+'</td></tr>').join("")+
+    '</tbody></table></div></div>');
+
+  const secRows=Object.keys(m.groups).map(k=>{
+    const sec=sectionOf(k);
+    const list=m.groups[k];
+    return '<tr><td data-label="Розділ">'+esc(k)+'</td><td data-label="Що це" class="muted">'+esc(sec.label||"?")+
+      (sec.auto?' <span class="flag">авто</span>':'')+'</td>'+
+      '<td class="num" data-label="Позицій" data-sort="'+list.length+'">'+list.length+'</td>'+
+      '<td class="num" data-label="Штук" data-sort="'+list.reduce((s,g)=>s+g.total,0)+'">'+list.reduce((s,g)=>s+g.total,0)+'</td></tr>';
+  }).join("");
+  out.push('<div class="group"><h3>Розділи дампу<span class="tag">'+Object.keys(m.groups).length+'</span></h3>'+
+    '<div class="scroll"><table class="plain cards"><thead><tr><th>Ключ</th><th>Що це</th>'+
+    '<th style="text-align:right">Позицій</th><th style="text-align:right">Штук</th></tr></thead><tbody>'+secRows+'</tbody></table></div></div>');
+
+  if(m.unknownKeys.length){
+    out.push('<div class="group"><h3>Ключі, які інструмент не читає<span class="tag">'+m.unknownKeys.length+'</span></h3>'+
+      '<p class="hint">Якщо серед них є щось корисне — це кандидати на наступні вкладки.</p>'+
+      '<div class="scroll"><table class="plain cards"><tbody>'+m.unknownKeys.map(k=>
+        '<tr><td data-label="Ключ"><code>'+esc(k.key)+'</code></td><td data-label="Вміст" class="muted">'+esc(k.shape)+'</td></tr>').join("")+
+      '</tbody></table></div></div>');
+  }
+  if(m.boosts.length){
+    out.push('<div class="group"><h3>Книги й зілля<span class="tag">'+m.boosts.length+'</span></h3>'+
+      '<div class="scroll"><table class="plain cards"><tbody>'+m.boosts.map(b=>
+        '<tr><td data-label="Предмет">'+esc(nameOf(b.id))+'</td><td class="num" data-label="Значення">'+esc(b.value)+'</td></tr>').join("")+
+      '</tbody></table></div></div>');
+  }
+  if(ids.length){
+    const by={};
+    ids.forEach(id=>{ const p=Math.floor(id/1e6); (by[p]=by[p]||[]).push(id); });
+    out.push('<div class="group"><h3>Поза довідником<span class="tag">'+ids.length+'</span></h3>'+
+      '<p class="hint">Цих ID немає у джерелі. Здебільшого це модулі Crafting Station (102/103) та частина косметики — '+
+      'вони не опубліковані окремими таблицями.</p>'+
+      Object.keys(by).sort((a,b)=>a-b).map(p=>
+        '<div style="margin-bottom:10px"><div class="label">'+p+'000000 · '+(FILE_BY_PREFIX[p]||"немає таблиці")+
+        ' · '+by[p].length+'</div><div class="idlist">'+by[p].map(id=>'<b>'+id+'</b>').join(" · ")+'</div></div>').join("")+
+      '</div>');
+  }else{
+    out.push('<div class="group"><h3>Поза довідником</h3><p class="empty">Усе впізнано.</p></div>');
+  }
+  return out.join("");
+}
+
+/* ============================================================
+   Таблиці: сортування кліком
+   ============================================================ */
 function enhanceTables(root){
   root.querySelectorAll("table.plain").forEach(tb=>{
-    if(!tb.tBodies.length) return;
+    if(!tb.tBodies.length||!tb.tHead) return;
     [...tb.querySelectorAll("thead th")].forEach((th,i)=>{
       if(th.dataset.nosort!==undefined) return;
       th.classList.add("sortable");
@@ -499,277 +1546,76 @@ function sortTable(tb,i,th){
   [...body.rows].sort((a,b)=>{
     const x=val(a), y=val(b);
     if(typeof x==="number"&&typeof y==="number") return dir==="asc"?x-y:y-x;
-    return dir==="asc"
-      ? String(x).localeCompare(String(y),"uk")
-      : String(y).localeCompare(String(x),"uk");
+    return dir==="asc"?String(x).localeCompare(String(y),"uk"):String(y).localeCompare(String(x),"uk");
   }).forEach(r=>body.appendChild(r));
 }
 
-function segColor(lvl,min,max){
-  if(lvl===null) return "#42586B";
-  if(max===min) return "#E9B44C";
-  const t=(lvl-min)/(max-min), a=[66,88,107], b=[233,180,76];
-  return "rgb("+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(",")+")";
+/* ============================================================
+   Вкладки
+   ============================================================ */
+const TABS=[
+  {id:"plan",  label:"Що прокачати", filters:true, csv:true, village:true, render:renderPlan},
+  {id:"home",  label:"Головне село", filters:true,
+   render:m=>renderGrouped((m.groups.buildings||[]).concat(m.groups.traps||[],m.groups.helpers||[]))},
+  {id:"bb",    label:"Builder Base", filters:true, render:renderBB},
+  {id:"army",  label:"Армія", filters:true, render:m=>
+    renderFlat(m.groups.units,"Війська")+renderFlat(m.groups.siege_machines,"Облогові машини")+
+    renderFlat(m.groups.spells,"Закляття")+renderFlat(m.groups.units2,"Війська Builder Base")},
+  {id:"heroes",label:"Герої", filters:true, render:m=>
+    renderFlat(m.groups.heroes,"Герої")+renderFlat(m.groups.heroes2,"Герої Builder Base")+
+    renderFlat(m.groups.pets,"Улюбленці")+
+    ((m.groups.guardians||[]).length?renderFlat(m.groups.guardians,"Хранителі"):"")},
+  {id:"gear",  label:"Спорядження", filters:true, render:renderGear},
+  {id:"progress",label:"Прогрес", render:renderProgress},
+  {id:"time",  label:"У роботі", render:renderTimers, count:m=>m.timers.length},
+  {id:"diag",  label:"Діагностика", render:renderDiag, count:m=>collectUnknown(m).length}
+];
+let activeTab="plan";
+
+function tabDef(){ return TABS.find(t=>t.id===activeTab)||TABS[0]; }
+function renderTabs(){
+  if(!MODEL) return;
+  const def=tabDef();
+  $("#tabs").innerHTML=TABS.map(t=>{
+    const n=t.count?t.count(MODEL):null;
+    return '<button role="tab" id="tab-'+t.id+'" aria-controls="panels" data-tab="'+t.id+'" '+
+      'tabindex="'+(t.id===activeTab?"0":"-1")+'" aria-selected="'+(t.id===activeTab)+'">'+esc(t.label)+
+      (n?'<span class="count">'+n+'</span>':'')+'</button>';
+  }).join("");
+  $("#filters").classList.toggle("hidden",!def.filters);
+  $("#fvillageWrap").classList.toggle("hidden",!def.village);
+  $("#csv").classList.toggle("hidden",!def.csv);
+  const panels=$("#panels");
+  panels.setAttribute("role","tabpanel");
+  panels.setAttribute("aria-labelledby","tab-"+activeTab);
+  panels.innerHTML=def.render(MODEL);
+  enhanceTables(panels);
+  saveUi();
+}
+$("#tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-tab]"); if(!b) return;
+  setTab(b.dataset.tab);
+});
+$("#tabs").addEventListener("keydown",e=>{
+  const keys=["ArrowLeft","ArrowRight","Home","End"];
+  if(!keys.includes(e.key)) return;
+  e.preventDefault();
+  const i=TABS.findIndex(t=>t.id===activeTab);
+  const n=e.key==="Home"?0:e.key==="End"?TABS.length-1:
+    e.key==="ArrowLeft"?(i-1+TABS.length)%TABS.length:(i+1)%TABS.length;
+  setTab(TABS[n].id);
+  const btn=$("#tab-"+TABS[n].id); if(btn) btn.focus();
+});
+function setTab(id){
+  if(!TABS.some(t=>t.id===id)) return;
+  activeTab=id;
+  history.replaceState(null,"","#"+id);
+  renderTabs();
 }
 
 /* ============================================================
-   Рендер
+   Селектори залів, фільтри, стан UI
    ============================================================ */
-function detectHalls(m){
-  const th=(m.groups.buildings||[]).find(g=>g.id===1000001);
-  const bh=(m.groups.buildings2||[]).find(g=>g.id===1000034);
-  return {th:th?th.max:null, bh:bh?bh.max:null};
-}
-
-function renderSummary(m){
-  const b=m.groups.buildings||[];
-  const huts=b.find(g=>g.id===1000015), walls=b.find(g=>g.id===1000010);
-  const heroes=m.groups.heroes||[];
-  const active=m.timers.filter(t=>!t.cooldown);
-  const det=detectHalls(m);
-
-  let wallAvg="—";
-  if(walls) wallAvg=(walls.levels.reduce((s,l)=>s+l.lvl*l.cnt,0)/walls.total).toFixed(2);
-
-  // позиції, що відстають, і найглибше відставання — без множення на кількість
-  let behind=0, deepest=0, maxed=0;
-  Object.keys(m.groups).forEach(k=>(m.groups[k]||[]).forEach(g=>{
-    const cap=capOf(g.id,g.village); if(cap==null) return;
-    g.levels.forEach(l=>{
-      if(l.lvl==null) return;
-      if(l.lvl<cap){ behind++; deepest=Math.max(deepest,cap-l.lvl); }
-      else maxed+=l.cnt;
-    });
-  }));
-
-  const cards=[
-    {k:"Ратуша",v:det.th??"—",sub:"дім будівельника "+(det.bh??"—"),gold:true},
-    {k:"Будівельники",v:huts?huts.total:"—",sub:active.length?active.length+" зайнято":"вільні"},
-    {k:"Стіни",v:walls?walls.total:"—",sub:walls?"середній "+wallAvg:""},
-    {k:"Герої",v:heroes.length,sub:heroes.map(h=>h.max).join(" / ")},
-    {k:"Відстає позицій",v:dbState.loaded?num(behind):"—",
-     sub:dbState.loaded?"найглибше −"+deepest+" · "+num(maxed)+" в максимумі":"потрібен довідник",alert:behind>0},
-    {k:"У роботі",v:active.length,sub:active.length?"див. вкладку":"нічого"}
-  ];
-  document.getElementById("summary").innerHTML=cards.map(c=>
-    '<div class="stat"><div class="k">'+c.k+'</div><div class="v'+(c.gold?" gold":"")+(c.alert?" alert":"")+'">'+
-    esc(c.v)+'</div><div class="sub">'+esc(c.sub||"")+'</div></div>').join("");
-
-  document.getElementById("stamp").innerHTML=
-    (m.tag?esc(m.tag)+"<br>":"")+(m.timestamp?"знімок "+fmtDate(m.timestamp):"");
-}
-
-function renderNotices(m){
-  let html="";
-  m.warns.forEach(w=>{ html+='<div class="notice">'+w+'</div>'; });
-  const unknown=collectUnknown(m);
-  if(unknown.length){
-    html+='<div class="notice bad"><b>'+unknown.length+'</b> ID немає навіть у джерелі — див. вкладку «Поза довідником».</div>';
-  }
-  document.getElementById("notices").innerHTML=html;
-}
-
-function collectUnknown(m){
-  const out=new Set();
-  Object.values(m.groups).forEach(list=>list.forEach(g=>{ if(!isKnown(g.id)) out.add(g.id); }));
-  (m.raw.buildings||[]).forEach(o=>(o.types||[]).forEach(t=>{
-    if(!isKnown(t.data)) out.add(t.data);
-    (t.modules||[]).forEach(x=>{ if(!isKnown(x.data)) out.add(x.data); });
-  }));
-  return [...out].sort((a,b)=>a-b);
-}
-
-function ribbon(g,cap){
-  return '<div class="ribbon">'+g.levels.map(l=>{
-    const behind=(cap!=null&&l.lvl!=null&&l.lvl<cap);
-    const busy=l.flags.includes("timer");
-    const title=(l.lvl===null?"без рівня":"рівень "+l.lvl)+" × "+l.cnt+
-      (behind?" — до максимуму +"+(cap-l.lvl):" — максимум")+(busy?", у прокачці":"");
-    return '<div class="seg'+(behind?" gap":"")+(busy?" busy":"")+'" style="flex-grow:'+l.cnt+
-      ';background:'+segColor(l.lvl,g.min,g.max)+'" title="'+esc(title)+'">'+
-      (l.lvl===null?"—":l.lvl)+(l.cnt>1?'<span class="c">×'+l.cnt+'</span>':'')+'</div>';
-  }).join("")+'</div>';
-}
-
-function flagChips(g){
-  const all=[];
-  g.levels.forEach(l=>l.flags.forEach(f=>{ if(!all.includes(f)) all.push(f); }));
-  let html=all.map(f=>{
-    if(f==="timer") return '<span class="flag warn">у прокачці</span>';
-    if(f==="gear_up") return '<span class="flag gold">gear up</span>';
-    if(f.startsWith("weapon")) return '<span class="flag gold">зброя '+f.slice(6)+'</span>';
-    if(f==="helper") return '<span class="flag">хелпер</span>';
-    if(f==="modules") return '<span class="flag">модулі</span>';
-    if(f==="cooldown") return '<span class="flag warn">кулдаун</span>';
-    return "";
-  }).join("");
-  if(!isKnown(g.id)) html+='<span class="flag alert">поза довідником</span>';
-  return html?'<div class="flags">'+html+'</div>':'';
-}
-
-function capCell(g,cap){
-  if(cap==null) return '<div class="cap" style="color:var(--dimmer)">—</div>';
-  const behind=g.levels.filter(l=>l.lvl!=null&&l.lvl<cap).reduce((s,l)=>s+(cap-l.lvl)*l.cnt,0);
-  return '<div class="cap"><span class="max">'+cap+'</span><br>'+
-    (behind?'<span class="todo">+'+behind+'</span>':'<span class="done">готово</span>')+'</div>';
-}
-
-function renderGrouped(list){
-  if(!list||!list.length) return '<p class="empty">Порожньо.</p>';
-  const byType={};
-  list.forEach(g=>{
-    const r=ref(g.id);
-    const t=(r&&r.type)||"Інше";
-    (byType[t]=byType[t]||[]).push(g);
-  });
-  const order=["Town Hall","BB Builder Hall","Defense","Wall","Army","Resource","Worker","Worker2","Helper","Trap","Інше"];
-  const keys=Object.keys(byType).sort((a,b)=>{
-    const ia=order.indexOf(a), ib=order.indexOf(b);
-    return (ia<0?99:ia)-(ib<0?99:ib);
-  });
-  return keys.map(t=>'<div class="group"><h3>'+esc(t)+'</h3>'+byType[t].map(g=>{
-    const cap=capOf(g.id,g.village);
-    return '<div class="item"><div class="name">'+esc(nameOf(g.id))+'<span class="id">'+g.id+'</span></div>'+
-      '<div class="qty"><b>'+g.total+'</b> шт</div>'+
-      '<div>'+ribbon(g,cap)+flagChips(g)+'</div>'+capCell(g,cap)+'</div>';
-  }).join("")+'</div>').join("");
-}
-
-function renderFlat(list){
-  if(!list||!list.length) return '<p class="empty">Порожньо.</p>';
-  const sorted=list.slice().sort((a,b)=>(b.max||0)-(a.max||0));
-  const hi=Math.max(...sorted.map(g=>g.max||0)), lo=Math.min(...sorted.map(g=>g.max||0));
-  return '<div class="scroll"><table class="plain"><thead><tr><th>Назва</th><th>ID</th>'+
-    '<th style="text-align:right">Рівень</th><th style="text-align:right">Максимум</th><th>Стан</th></tr></thead><tbody>'+
-    sorted.map(g=>{
-      const cap=capOf(g.id,g.village);
-      const gap=(cap!=null&&g.max!=null)?cap-g.max:null;
-      return '<tr><td data-sort="'+esc(nameOf(g.id))+'">'+esc(nameOf(g.id))+'</td>'+
-        '<td class="num" data-sort="'+g.id+'" style="color:var(--dimmer)">'+g.id+'</td>'+
-        '<td class="num" data-sort="'+(g.max??-1)+'"><span class="lvlchip" style="background:'+segColor(g.max,lo,hi)+'">'+(g.max??"—")+'</span></td>'+
-        '<td class="num" data-sort="'+(gap==null?-1:gap)+'">'+(cap==null?'<span style="color:var(--dimmer)">—</span>':
-          '<span style="color:var(--gold)">'+cap+'</span>'+(gap>0?' <span style="color:var(--warn)">+'+gap+'</span>':
-          ' <span style="color:var(--teal)">✓</span>'))+'</td>'+
-        '<td>'+(flagChips(g)||'<span style="color:var(--dimmer)">—</span>')+'</td></tr>';
-    }).join("")+'</tbody></table></div>';
-}
-
-function renderPlan(m){
-  if(!dbState.loaded) return '<p class="empty">Довідник не завантажився — план прокачки порахувати нема з чого.</p>';
-  const rows=[];
-  Object.keys(m.groups).forEach(k=>{
-    const sec=SECTIONS.find(s=>s.key===k);
-    (m.groups[k]||[]).forEach(g=>{
-      const cap=capOf(g.id,g.village); if(cap==null) return;
-      g.levels.forEach(l=>{
-        if(l.lvl==null||l.lvl>=cap) return;
-        const c=costTo(g.id,l.lvl,cap);
-        const costs={};
-        Object.keys(c.costs).forEach(res=>costs[res]=c.costs[res]*l.cnt);
-        rows.push({name:nameOf(g.id),id:g.id,lvl:l.lvl,cnt:l.cnt,cap:cap,
-          gap:cap-l.lvl,                       // скільки бракує ОДНІЙ будівлі
-          costs:costs,total:Object.values(costs).reduce((s,v)=>s+v,0),
-          time:c.time*l.cnt,village:g.village,
-          kind:sec&&sec.grouped?"build":"lab"});
-      });
-    });
-  });
-  if(!rows.length) return '<p class="empty">Усе на максимумі для цього рівня залу.</p>';
-  rows.sort((a,b)=>b.gap-a.gap||b.cnt-a.cnt);
-
-  const byRes={};
-  rows.forEach(r=>Object.keys(r.costs).forEach(res=>byRes[res]=(byRes[res]||0)+r.costs[res]));
-  const deepest=Math.max(...rows.map(r=>r.gap));
-  const totalTime=rows.filter(r=>r.kind==="build").reduce((s,r)=>s+r.time,0);
-
-  const summary='<div class="summary" style="margin-top:0">'+
-    '<div class="stat"><div class="k">Позицій у плані</div><div class="v gold">'+rows.length+'</div>'+
-    '<div class="sub">найглибше −'+deepest+' рівнів</div></div>'+
-    Object.keys(byRes).filter(r=>byRes[r]>0).sort((a,b)=>byRes[b]-byRes[a]).map(r=>
-      '<div class="stat"><div class="k">'+esc(r)+'</div>'+
-      '<div class="v"><span class="res '+resSlug(r)+'">'+num(byRes[r])+'</span></div>'+
-      '<div class="sub">разом до максимуму</div></div>').join("")+
-    '<div class="stat"><div class="k">Часу будівництва</div><div class="v teal">'+days(totalTime)+'</div>'+
-    '<div class="sub">одним будівельником</div></div></div>';
-
-  return '<p class="hint">Колонка «Бракує» — це відставання однієї будівлі, не помножене на кількість: у 150 стін відставання −3, а не −450. На кількість множиться тільки вартість, бо платити доведеться за кожну. Час — лише для будівель, лабораторні апгрейди йдуть паралельно і в суму не входять. Клік по заголовку сортує.</p>'+
-    summary+
-    '<div class="scroll"><table class="plain"><thead><tr><th>Що</th><th>Село</th>'+
-    '<th style="text-align:right">Зараз</th><th style="text-align:right">Максимум</th>'+
-    '<th style="text-align:right">Бракує</th><th style="text-align:right">Кількість</th>'+
-    '<th style="text-align:right">Вартість</th></tr></thead><tbody>'+
-    rows.map(r=>'<tr><td data-sort="'+esc(r.name)+'">'+esc(r.name)+'</td>'+
-      '<td style="color:var(--dim)">'+(r.village==="builder"?"Builder Base":"Головне")+'</td>'+
-      '<td class="num" data-sort="'+r.lvl+'"><span class="lvlchip" style="background:#42586B;color:#D6E2EA">'+r.lvl+'</span></td>'+
-      '<td class="num" data-sort="'+r.cap+'" style="color:var(--gold)">'+r.cap+'</td>'+
-      '<td class="num" data-sort="'+r.gap+'" style="color:var(--warn)">−'+r.gap+'</td>'+
-      '<td class="num" data-sort="'+r.cnt+'">×'+r.cnt+'</td>'+
-      '<td class="num" data-sort="'+r.total+'">'+resCell(r.costs)+'</td></tr>').join("")+
-    '</tbody></table></div>';
-}
-
-function renderTimers(m){
-  if(!m.timers.length) return '<p class="empty">Нічого не прокачується.</p>';
-  const base=m.timestamp||Math.floor(Date.now()/1000), now=Math.floor(Date.now()/1000);
-  return '<p class="hint">Таймери у файлі — залишок на момент знімка. «Буде готово» рахується від часу знімка, остання колонка — від зараз.</p>'+
-    '<div class="scroll"><table class="plain"><thead><tr><th>Що</th><th>Село</th>'+
-    '<th style="text-align:right">Залишалось</th><th style="text-align:right">Буде готово</th>'+
-    '<th style="text-align:right">Лишилось зараз</th></tr></thead><tbody>'+
-    m.timers.slice().sort((a,b)=>a.seconds-b.seconds).map(t=>{
-      const eta=base+t.seconds, left=eta-now;
-      return '<tr><td data-sort="'+esc(nameOf(t.id))+'">'+esc(nameOf(t.id))+(t.lvl!=null?' <span style="color:var(--dimmer)">lvl '+t.lvl+'</span>':'')+
-        (t.cooldown?' <span class="flag warn">кулдаун</span>':'')+'</td>'+
-        '<td style="color:var(--dim)">'+(t.village==="builder"?"Builder Base":"Головне")+'</td>'+
-        '<td class="num" data-sort="'+t.seconds+'">'+hms(t.seconds)+'</td>'+
-        '<td class="num" data-sort="'+eta+'" style="color:var(--gold)">'+fmtDate(eta)+'</td>'+
-        '<td class="num" data-sort="'+left+'" style="color:'+(left<=0?"var(--teal)":"var(--dim)")+'">'+(left<=0?"готово":hms(left))+'</td></tr>';
-    }).join("")+'</tbody></table></div>';
-}
-
-function renderUnknown(m){
-  const ids=collectUnknown(m);
-  if(!ids.length) return '<p class="empty">Усе впізнано.</p>';
-  const by={};
-  ids.forEach(id=>{ const p=Math.floor(id/1e6); (by[p]=by[p]||[]).push(id); });
-  return '<p class="hint">Цих ID немає ні у вбудованому мінімумі, ні у відкритому джерелі. Здебільшого це модулі Crafting Station (102/103) та частина косметики — вони не опубліковані окремими таблицями.</p>'+
-    Object.keys(by).sort((a,b)=>a-b).map(p=>
-      '<div class="group"><h3>'+p+'000000 · '+(FILE_BY_PREFIX[p]||"немає таблиці")+
-      ' <span style="color:var(--dimmer)">'+by[p].length+'</span></h3>'+
-      '<div class="idlist">'+by[p].map(id=>'<b>'+id+'</b>').join(" · ")+'</div></div>').join("");
-}
-
-const TABS=[
-  {id:"plan",label:"Що прокачати",render:renderPlan},
-  {id:"home",label:"Головне село",render:m=>renderGrouped((m.groups.buildings||[]).concat(m.groups.traps||[],m.groups.helpers||[]))},
-  {id:"builder",label:"Builder Base",render:m=>renderGrouped((m.groups.buildings2||[]).concat(m.groups.traps2||[]))},
-  {id:"army",label:"Армія",render:m=>
-    '<div class="group"><h3>Війська</h3>'+renderFlat(m.groups.units)+'</div>'+
-    '<div class="group"><h3>Облогові машини</h3>'+renderFlat(m.groups.siege_machines)+'</div>'+
-    '<div class="group"><h3>Закляття</h3>'+renderFlat(m.groups.spells)+'</div>'+
-    '<div class="group"><h3>Війська Builder Base</h3>'+renderFlat(m.groups.units2)+'</div>'},
-  {id:"heroes",label:"Герої",render:m=>
-    '<div class="group"><h3>Герої</h3>'+renderFlat(m.groups.heroes)+'</div>'+
-    '<div class="group"><h3>Герої Builder Base</h3>'+renderFlat(m.groups.heroes2)+'</div>'+
-    '<div class="group"><h3>Улюбленці</h3>'+renderFlat(m.groups.pets)+'</div>'+
-    '<div class="group"><h3>Спорядження</h3>'+renderFlat(m.groups.equipment)+'</div>'},
-  {id:"time",label:"У роботі",render:renderTimers,count:m=>m.timers.length},
-  {id:"unk",label:"Поза довідником",render:renderUnknown,count:m=>collectUnknown(m).length}
-];
-
-let activeTab="plan";
-function renderTabs(){
-  document.getElementById("tabs").innerHTML=TABS.map(t=>
-    '<button role="tab" data-tab="'+t.id+'" aria-selected="'+(t.id===activeTab)+'">'+t.label+
-    (t.count?'<span class="count">'+t.count(MODEL)+'</span>':'')+'</button>').join("");
-  const panels=document.getElementById("panels");
-  panels.innerHTML=TABS.filter(t=>t.id===activeTab).map(t=>t.render(MODEL)).join("");
-  enhanceTables(panels);
-}
-document.getElementById("tabs").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-tab]"); if(!b) return;
-  activeTab=b.dataset.tab; renderTabs();
-});
-
 function fillHallSelects(){
   const mk=(sel,val,max)=>{
     sel.innerHTML="";
@@ -780,12 +1626,11 @@ function fillHallSelects(){
       sel.appendChild(o);
     }
   };
-  mk(document.getElementById("thSel"),TH,17);
-  mk(document.getElementById("bhSel"),BH,10);
+  /* стелі беремо з довідника: інакше після кожного оновлення гри
+     доводиться правити константу в коді */
+  mk($("#thSel"),TH,Math.max(maxLevelOf(1000001)||0,TH||0,17));
+  mk($("#bhSel"),BH,Math.max(maxLevelOf(1000034)||0,BH||0,10));
 }
-document.getElementById("thSel").addEventListener("change",e=>{TH=+e.target.value;renderAll(false);});
-document.getElementById("bhSel").addEventListener("change",e=>{BH=+e.target.value;renderAll(false);});
-
 function paintGates(){
   const g=GATES, parts=[];
   if(g.lab!=null) parts.push("лабораторія "+g.lab);
@@ -793,66 +1638,222 @@ function paintGates(){
   if(g.smith!=null) parts.push("кузня "+g.smith);
   if(g.pet!=null) parts.push("будинок пета "+g.pet);
   if(g.lab_bb!=null) parts.push("зоряна лаба "+g.lab_bb);
-  document.querySelector(".hallbar .note").textContent=
-    parts.length?"Рівні також обмежені: "+parts.join(" · "):"Змінюй, щоб побачити, що відкриється далі.";
+  if(g.outpost!=null) parts.push("аванпост "+g.outpost);
+  $("#gateNote").textContent=parts.length
+    ? "Рівні також обмежені: "+parts.join(" · ")
+    : "Змінюй, щоб побачити, що відкриється далі.";
+}
+$("#thSel").addEventListener("change",e=>{TH=+e.target.value;renderAll(false);});
+$("#bhSel").addEventListener("change",e=>{BH=+e.target.value;renderAll(false);});
+
+let filterTimer=null;
+function onFilterChange(instant){
+  FILTER.q=$("#fq").value.trim();
+  FILTER.behind=$("#fbehind").checked;
+  FILTER.walls=$("#fwalls").checked;
+  FILTER.village=$("#fvillage").value;
+  clearTimeout(filterTimer);
+  if(instant) renderTabs();
+  else filterTimer=setTimeout(renderTabs,160);
+}
+$("#fq").addEventListener("input",()=>onFilterChange(false));
+$("#fbehind").addEventListener("change",()=>onFilterChange(true));
+$("#fwalls").addEventListener("change",()=>onFilterChange(true));
+$("#fvillage").addEventListener("change",()=>onFilterChange(true));
+$("#fclear").addEventListener("click",()=>{
+  $("#fq").value=""; $("#fbehind").checked=false; $("#fwalls").checked=false; $("#fvillage").value="all";
+  onFilterChange(true);
+});
+
+function saveUi(){
+  SS.setJson(KEY.ui,{tab:activeTab,th:TH,bh:BH,filter:FILTER,stageView:stageView});
+}
+function restoreUi(){
+  const ui=SS.json(KEY.ui,null);
+  if(!ui) return;
+  if(ui.filter){
+    Object.assign(FILTER,ui.filter);
+    $("#fq").value=FILTER.q||""; $("#fbehind").checked=!!FILTER.behind;
+    $("#fwalls").checked=!!FILTER.walls; $("#fvillage").value=FILTER.village||"all";
+  }
+  if(ui.stageView) stageView=ui.stageView;
+  if(ui.tab&&TABS.some(t=>t.id===ui.tab)) activeTab=ui.tab;
+  return ui;
 }
 
+/* делеговані події всередині панелей (етапи ББ, вибір знімка) */
+$("#panels").addEventListener("click",e=>{
+  const stage=e.target.closest("button[data-stage]");
+  if(stage){ stageView=stage.dataset.stage; renderTabs(); return; }
+  if(e.target.id==="stageHalf"){ splitEvenly(); renderTabs(); return; }
+  if(e.target.id==="stageReset"){ resetStages(); renderTabs(); return; }
+  if(e.target.id==="snapClear"){
+    if(confirm("Видалити збережені знімки для цього тега?")){ LS.del(snapsKey()); renderTabs(); }
+    return;
+  }
+});
+$("#panels").addEventListener("change",e=>{
+  const inp=e.target.closest("input[data-bucket]");
+  if(inp){
+    const max=Number(inp.dataset.max)||0;
+    const v=Math.max(0,Math.min(max,Math.round(Number(inp.value)||0)));
+    inp.value=v;
+    const key=inp.dataset.bucket;
+    STAGES[key]=v;
+    saveStages();
+    renderTabs();
+    const again=$('#panels input[data-bucket="'+key+'"]');
+    if(again){ again.focus(); again.select(); }
+    return;
+  }
+  if(e.target.id==="cmpSel"){ compareWith=e.target.value; renderTabs(); }
+});
+
+/* ============================================================
+   Експорт
+   ============================================================ */
+$("#csv").addEventListener("click",()=>{
+  if(!PLAN_ROWS.length) return;
+  const res=[...new Set(PLAN_ROWS.flatMap(r=>Object.keys(r.costs)))].sort();
+  const head=["Що","ID","Село","Зараз","Максимум","Бракує","Кількість","Час, год"].concat(res);
+  const lines=[head.join(";")].concat(PLAN_ROWS.map(r=>[
+    '"'+r.name.replace(/"/g,'""')+'"', r.id, r.village==="builder"?"Builder Base":"Головне",
+    r.lvl, r.cap, r.gap, r.cnt, Math.round(r.time/3600)
+  ].concat(res.map(x=>r.costs[x]||0)).join(";")));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="plan-"+(MODEL.tag||"base").replace(/[^A-Za-z0-9]/g,"")+".csv";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+
+/* ============================================================
+   Збірка сторінки
+   ============================================================ */
+function collapseInput(on){
+  $("#inputPanel").classList.toggle("hidden",on);
+  $("#dumpBar").classList.toggle("hidden",!on);
+}
+function paintDumpBar(m,bytes){
+  $("#dumpTag").textContent=m.tag||"без тега";
+  const bits=[];
+  if(m.timestamp) bits.push("знімок "+fmtDate(m.timestamp));
+  bits.push(Math.round(bytes/1024)+" КБ");
+  bits.push(Object.keys(m.groups).length+" розділів");
+  $("#dumpNote").textContent=bits.join(" · ");
+}
 function renderAll(resetHalls){
   if(resetHalls){
     const det=detectHalls(MODEL);
     TH=det.th; BH=det.bh;
     GATES=detectGates(MODEL);
-    fillHallSelects();
-    paintGates();
+  }else{
+    GATES=detectGates(MODEL);
   }
+  fillHallSelects();
+  paintGates();
   renderSummary(MODEL);
   renderNotices(MODEL);
   renderTabs();
-  document.getElementById("result").classList.remove("hidden");
+  $("#result").classList.remove("hidden");
 }
 
 /* ============================================================
    Події
    ============================================================ */
-async function run(){
-  const msg=document.getElementById("msg"), btn=document.getElementById("parse");
-  const raw=document.getElementById("dump").value.trim();
+function persistDump(text){
+  const keep=$("#keep").checked;
+  LS.set(KEY.keep,keep?"1":"0");
+  if(keep){ LS.set(KEY.dump,text); SS.del(KEY.dump); }
+  else{ SS.set(KEY.dump,text); LS.del(KEY.dump); }
+}
+async function run(opts){
+  opts=opts||{};
+  const msg=$("#msg"), btn=$("#parse");
+  const raw=$("#dump").value.trim();
   if(!raw){ msg.className="msg error"; msg.textContent="Спершу встав JSON."; return; }
   let parsed;
   try{ parsed=parse(raw); }
   catch(err){
     msg.className="msg error"; msg.textContent="JSON не читається: "+err.message;
-    document.getElementById("result").classList.add("hidden"); return;
+    $("#result").classList.add("hidden"); collapseInput(false); return;
   }
   MODEL=parsed;
-  btn.disabled=true; msg.className="msg"; msg.textContent="Тягну довідник…";
-  paintSrc("Завантаження…");
-  DB.clear();
-  await loadRefs(MODEL.prefixes,f=>{ msg.textContent="Тягну довідник… "+f; });
-  msg.textContent="";
-  btn.disabled=false;
+  persistDump(raw);
+  loadStages();
+  paintDumpBar(MODEL,raw.length);
+
+  /* Малюємо одразу, ще до довідника: видно структуру бази й таймери,
+     а назви зі стелями домальовуються, щойно приїдуть дані. */
   renderAll(true);
-  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"start"});
+  collapseInput(true);
+
+  btn.disabled=true; msg.className="msg"; msg.textContent="Тягну довідник…";
+  await loadRefs(MODEL.prefixes,f=>{ msg.textContent="Тягну довідник… "+f; },opts.force);
+  msg.textContent=""; btn.disabled=false;
+
+  saveSnapshot(MODEL);
+  renderAll(!opts.keepHalls);
+  if(!opts.silent) $("#result").scrollIntoView({behavior:"smooth",block:"start"});
 }
-document.getElementById("parse").addEventListener("click",run);
-document.getElementById("reload").addEventListener("click",async()=>{
+$("#parse").addEventListener("click",()=>run());
+$("#reload").addEventListener("click",async()=>{
   if(!MODEL){ paintSrc("Спершу розбери дамп."); return; }
-  DB.clear(); paintSrc("Оновлюю…");
-  await loadRefs(MODEL.prefixes);
+  await loadRefs(MODEL.prefixes,null,true);
   renderAll(false);
 });
-document.getElementById("clear").addEventListener("click",()=>{
-  document.getElementById("dump").value="";
-  document.getElementById("msg").textContent="";
-  document.getElementById("result").classList.add("hidden");
+$("#edit").addEventListener("click",()=>{
+  collapseInput(false);
+  $("#dump").focus();
+});
+$("#clear").addEventListener("click",()=>{
+  $("#dump").value="";
+  $("#msg").textContent="";
+  MODEL=null;
+  SS.del(KEY.dump); LS.del(KEY.dump); SS.del(KEY.ui);
+  $("#result").classList.add("hidden");
+  collapseInput(false);
+});
+$("#keep").addEventListener("change",()=>{
+  const text=$("#dump").value.trim();
+  if(text) persistDump(text); else LS.set(KEY.keep,$("#keep").checked?"1":"0");
+});
+$("#sample").addEventListener("click",async()=>{
+  const msg=$("#msg");
+  msg.className="msg"; msg.textContent="Тягну приклад…";
+  try{
+    $("#dump").value=await getText(LOCAL+"sample.json",{cache:"default"});
+    msg.textContent="";
+    run();
+  }catch(err){
+    msg.className="msg error";
+    msg.textContent="Приклад не завантажився ("+err.message+") — встав свій JSON.";
+  }
 });
 
-const SAMPLE={"tag":"#G2JVPVV8","timestamp":1787210343,"helpers":[{"data":93000000,"lvl":3,"helper_cooldown":78767},{"data":93000001,"lvl":1,"helper_cooldown":78767},{"data":93000002,"lvl":1}],"buildings":[{"data":1000001,"lvl":12,"weapon":1},{"data":1000000,"lvl":7,"timer":22599},{"data":1000008,"lvl":11,"gear_up":1},{"data":1000009,"lvl":12,"gear_up":1},{"data":1000020,"lvl":5,"timer":63175,"helper_recurrent":true},{"data":1000000,"lvl":7,"timer":163601},{"data":1000097,"types":[{"data":103000011,"modules":[{"data":102000033,"lvl":1},{"data":102000034,"lvl":1},{"data":102000035,"lvl":1}]},{"data":103000012,"modules":[{"data":102000036,"lvl":2},{"data":102000037,"lvl":2},{"data":102000038,"lvl":1}]},{"data":103000013,"modules":[{"data":102000039,"lvl":1},{"data":102000040,"lvl":2},{"data":102000041,"lvl":1}]}]},{"data":1000000,"lvl":7,"cnt":1},{"data":1000000,"lvl":8,"cnt":1},{"data":1000002,"lvl":15,"cnt":7},{"data":1000003,"lvl":13,"cnt":4},{"data":1000004,"lvl":12,"cnt":7},{"data":1000005,"lvl":11,"cnt":1},{"data":1000005,"lvl":12,"cnt":1},{"data":1000005,"lvl":13,"cnt":2},{"data":1000006,"lvl":13,"cnt":1},{"data":1000007,"lvl":10,"cnt":1},{"data":1000008,"lvl":2,"cnt":1},{"data":1000008,"lvl":3,"cnt":1},{"data":1000008,"lvl":11,"cnt":3},{"data":1000008,"lvl":12,"cnt":1},{"data":1000009,"lvl":3,"cnt":1},{"data":1000009,"lvl":4,"cnt":1},{"data":1000009,"lvl":11,"cnt":3},{"data":1000009,"lvl":12,"cnt":2},{"data":1000010,"lvl":10,"cnt":150},{"data":1000010,"lvl":11,"cnt":130},{"data":1000010,"lvl":12,"cnt":19},{"data":1000010,"lvl":13,"cnt":1},{"data":1000011,"lvl":3,"cnt":1},{"data":1000011,"lvl":7,"cnt":4},{"data":1000012,"lvl":7,"cnt":2},{"data":1000012,"lvl":8,"cnt":1},{"data":1000012,"lvl":9,"cnt":1},{"data":1000013,"lvl":7,"cnt":3},{"data":1000013,"lvl":8,"cnt":1},{"data":1000014,"lvl":8,"cnt":1},{"data":1000015,"lvl":1,"cnt":5},{"data":1000019,"lvl":2,"cnt":1},{"data":1000019,"lvl":7,"cnt":4},{"data":1000021,"lvl":5,"cnt":3},{"data":1000021,"lvl":6,"cnt":1},{"data":1000023,"lvl":6,"cnt":1},{"data":1000023,"lvl":7,"cnt":2},{"data":1000024,"lvl":6,"cnt":1},{"data":1000026,"lvl":6,"cnt":1},{"data":1000027,"lvl":1,"cnt":2},{"data":1000027,"lvl":3,"cnt":1},{"data":1000028,"lvl":7,"cnt":2},{"data":1000029,"lvl":5,"cnt":1},{"data":1000031,"lvl":2,"cnt":1},{"data":1000032,"lvl":1,"cnt":1},{"data":1000032,"lvl":5,"cnt":1},{"data":1000059,"lvl":3,"cnt":1},{"data":1000070,"lvl":4,"cnt":1},{"data":1000071,"lvl":6,"cnt":1},{"data":1000093,"lvl":1,"cnt":1}],"traps":[{"data":12000000,"lvl":5,"cnt":6},{"data":12000001,"lvl":1,"cnt":2},{"data":12000001,"lvl":2,"cnt":2},{"data":12000001,"lvl":4,"cnt":4},{"data":12000002,"lvl":1,"cnt":2},{"data":12000002,"lvl":2,"cnt":3},{"data":12000002,"lvl":3,"cnt":1},{"data":12000005,"lvl":1,"cnt":1},{"data":12000005,"lvl":2,"cnt":1},{"data":12000005,"lvl":3,"cnt":3},{"data":12000005,"lvl":4,"cnt":1},{"data":12000006,"lvl":1,"cnt":2},{"data":12000006,"lvl":2,"cnt":4},{"data":12000008,"lvl":1,"cnt":1},{"data":12000008,"lvl":3,"cnt":2},{"data":12000016,"lvl":1,"cnt":1}],"units":[{"data":4000000,"lvl":5},{"data":4000001,"lvl":6},{"data":4000002,"lvl":7},{"data":4000003,"lvl":6},{"data":4000004,"lvl":5},{"data":4000005,"lvl":8},{"data":4000006,"lvl":6},{"data":4000007,"lvl":4},{"data":4000008,"lvl":6,"timer":119284,"helper_recurrent":true},{"data":4000009,"lvl":4},{"data":4000010,"lvl":3},{"data":4000011,"lvl":3},{"data":4000012,"lvl":3},{"data":4000013,"lvl":2},{"data":4000015,"lvl":1},{"data":4000017,"lvl":4},{"data":4000023,"lvl":3},{"data":4000024,"lvl":1},{"data":4000059,"lvl":2}],"siege_machines":[{"data":4000051,"lvl":1},{"data":4000052,"lvl":1},{"data":4000062,"lvl":1}],"heroes":[{"data":28000000,"lvl":32},{"data":28000001,"lvl":34},{"data":28000002,"lvl":2},{"data":28000006,"lvl":4}],"spells":[{"data":26000000,"lvl":8},{"data":26000001,"lvl":7},{"data":26000002,"lvl":5},{"data":26000003,"lvl":3},{"dat":26000005,"lvl":2},{"data":26000009,"lvl":3},{"data":26000010,"lvl":4},{"data":26000011,"lvl":4},{"data":26000016,"lvl":1},{"data":26000017,"lvl":2},{"data":26000028,"lvl":2}],"pets":[],"equipment":[{"data":90000000,"lvl":4},{"data":90000001,"lvl":4},{"data":90000002,"lvl":5},{"data":90000003,"lvl":4},{"data":90000004,"lvl":8},{"data":90000005,"lvl":1},{"data":90000006,"lvl":1},{"data":90000007,"lvl":1},{"data":90000008,"lvl":8},{"data":90000010,"lvl":11},{"data":90000011,"lvl":1},{"data":90000013,"lvl":1},{"data":90000014,"lvl":1},{"data":90000015,"lvl":11},{"data":90000016,"lvl":1},{"data":90000017,"lvl":9},{"data":90000019,"lvl":1},{"data":90000022,"lvl":1},{"data":90000024,"lvl":1},{"data":90000032,"lvl":1},{"data":90000035,"lvl":1},{"data":90000039,"lvl":1},{"data":90000040,"lvl":1},{"data":90000041,"lvl":1},{"data":90000042,"lvl":1},{"data":90000043,"lvl":1},{"data":90000044,"lvl":1},{"data":90000048,"lvl":1},{"data":90000049,"lvl":1},{"data":90000050,"lvl":1},{"data":90000051,"lvl":1},{"data":90000052,"lvl":1},{"data":90000053,"lvl":1},{"data":90000057,"lvl":1},{"data":90000060,"lvl":1}],"buildings2":[{"data":1000043,"lvl":6,"timer":162148},{"data":1000033,"lvl":1,"cnt":20},{"data":1000033,"lvl":4,"cnt":109},{"data":1000033,"lvl":5,"cnt":10},{"data":1000033,"lvl":6,"cnt":1},{"data":1000034,"lvl":7,"cnt":1},{"data":1000035,"lvl":6,"cnt":2},{"data":1000036,"lvl":6,"cnt":2},{"data":1000037,"lvl":6,"cnt":1},{"data":1000037,"lvl":7,"cnt":1},{"data":1000038,"lvl":6,"cnt":1},{"data":1000038,"lvl":7,"cnt":1},{"data":1000039,"lvl":6,"cnt":1},{"data":1000040,"lvl":9,"cnt":1},{"data":1000041,"lvl":6,"cnt":1},{"data":1000041,"lvl":7,"cnt":1},{"data":1000042,"lvl":1,"cnt":6},{"data":1000043,"lvl":5,"cnt":1},{"data":1000043,"lvl":6,"cnt":1},{"data":1000044,"lvl":2,"cnt":1},{"data":1000044,"lvl":6,"cnt":2},{"data":1000045,"lvl":6,"cnt":1},{"data":1000046,"lvl":7,"cnt":1},{"data":1000047,"lvl":1,"cnt":1},{"data":1000048,"lvl":6,"cnt":3},{"data":1000049,"lvl":1,"cnt":1},{"data":1000050,"lvl":1,"cnt":1},{"data":1000050,"lvl":6,"cnt":2},{"data":1000051,"lvl":6,"cnt":1},{"data":1000053,"lvl":1,"cnt":1},{"data":1000054,"lvl":6,"cnt":1},{"data":1000055,"lvl":6,"cnt":2},{"data":1000056,"lvl":7,"cnt":1},{"data":1000057,"lvl":2,"cnt":1},{"data":1000058,"lvl":6,"cnt":1},{"data":1000078,"lvl":4,"cnt":1},{"data":1000082,"lvl":2,"cnt":1}],"traps2":[{"data":12000010,"lvl":1,"cnt":1},{"data":12000010,"lvl":3,"cnt":3},{"data":12000011,"lvl":1,"cnt":1},{"data":12000011,"lvl":6,"cnt":4},{"data":12000013,"lvl":6,"cnt":5},{"data":12000014,"lvl":6,"cnt":2}],"units2":[{"data":4000031,"lvl":10},{"data":4000032,"lvl":10},{"data":4000033,"lvl":6},{"data":4000034,"lvl":12},{"data":4000035,"lvl":8},{"data":4000037,"lvl":12},{"data":4000038,"lvl":11},{"data":4000041,"lvl":5},{"data":4000042,"lvl":14}],"heroes2":[{"data":28000003,"lvl":11,"timer":154016}]};
+/* ============================================================
+   Старт
+   ============================================================ */
+(function boot(){
+  applyTheme(LS.get(KEY.theme)||"auto");
+  const hash=location.hash.replace("#","");
+  if(hash&&TABS.some(t=>t.id===hash)) activeTab=hash;
+  restoreUi();
+  if(hash&&TABS.some(t=>t.id===hash)) activeTab=hash;
 
-document.getElementById("sample").addEventListener("click",()=>{
-  document.getElementById("dump").value=JSON.stringify(SAMPLE,null,2);
-  run();
-});
+  const keep=LS.get(KEY.keep)==="1";
+  $("#keep").checked=keep;
+  const saved=keep?LS.get(KEY.dump):SS.get(KEY.dump);
+  if(saved){
+    $("#dump").value=saved;
+    const ui=SS.json(KEY.ui,null);
+    run({silent:true}).then(()=>{
+      if(ui&&ui.th){ TH=ui.th; BH=ui.bh; fillHallSelects(); renderAll(false); }
+      $("#msg").textContent="Відновлено "+(keep?"з пам'яті браузера":"з поточної сесії")+".";
+    });
+  }
+})();
 </script>
 </body>
 </html>

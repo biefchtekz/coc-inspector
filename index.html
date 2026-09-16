@@ -210,6 +210,7 @@
   .hint{font-size:12.5px;color:var(--dim);margin:0 0 12px;max-width:80ch}
   .idlist{font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--dim);word-break:break-all}
   .idlist b{color:var(--alert);font-weight:500}
+  .idlist.calm b{color:var(--dim)}
   .up{color:var(--teal)} .down{color:var(--alert)} .muted{color:var(--dimmer)}
 
   /* етапи Builder Base */
@@ -582,6 +583,14 @@ const SECTIONS=[
 ];
 const SECTION_KEYS=new Set(SECTIONS.map(s=>s.key));
 const SCALAR_KEYS=new Set(["tag","timestamp","name","level","trophies","clan","town_hall","builder_hall"]);
+/* Косметика: скіни, пейзажі, оздоблення, частини будинку в столиці. До прогресу
+   не має стосунку, тож у попередження не йде — лише тихий рядок у діагностиці. */
+const COSMETIC_KEYS=new Set(["skins","skins2","sceneries","sceneries2","house_parts",
+  "capital_house_parts","decos","decos2","decorations","decorations2","flags","backgrounds"]);
+const COSMETIC_PREFIXES=new Set([18,52,60,82]);
+/* Префікси, яких у відкритих таблицях немає й не буде: модулі Crafting Station.
+   Їх не треба щоразу підсвічувати як проблему. */
+const EXPECTED_UNKNOWN_PREFIXES=new Set([102,103]);
 const ID_KEYS=["data","dat","id"];
 const NOT_ID=new Set(["lvl","cnt","timer","helper_cooldown","gear_up","weapon","level","count","x","y"]);
 
@@ -622,10 +631,12 @@ function parse(raw){
   Object.keys(j).forEach(k=>{
     if(SECTION_KEYS.has(k)||SCALAR_KEYS.has(k)||k==="boosts") return;
     const v=j[k];
-    const looksLikeSection=Array.isArray(v)&&v.length&&v.every(x=>x&&typeof x==="object")&&
+    const cosmetic=COSMETIC_KEYS.has(k);
+    const objectsWithId=Array.isArray(v)&&v.length&&v.every(x=>x&&typeof x==="object")&&
       v.some(x=>ID_KEYS.some(id=>typeof x[id]==="number"));
-    if(looksLikeSection) sections.push({key:k,label:k,village:"home",kind:"extra",auto:true});
-    else unknownKeys.push({key:k,shape:describe(v)});
+    const bareIds=Array.isArray(v)&&v.length&&v.every(x=>plausibleId(x));
+    if(!cosmetic&&(objectsWithId||bareIds)) sections.push({key:k,label:k,village:"home",kind:"extra",auto:true});
+    else unknownKeys.push({key:k,shape:describe(v),cosmetic:cosmetic});
   });
 
   sections.forEach(sec=>{
@@ -1074,11 +1085,23 @@ function renderNotices(m){
   let html="";
   if(REF.state==="loading") html+='<div class="notice info">Довідник ще вантажиться — назви й стелі з\'являться за секунду.</div>';
   m.warns.forEach(w=>{ html+='<div class="notice">'+w+'</div>'; });
-  const unknown=collectUnknown(m);
-  if(unknown.length) html+='<div class="notice bad"><b>'+unknown.length+'</b> ID немає навіть у джерелі — див. «Діагностику».</div>';
-  if(m.unknownKeys.length) html+='<div class="notice">У дампі є розділи, яких інструмент не читає: <code>'+
-    m.unknownKeys.map(k=>esc(k.key)).join("</code>, <code>")+'</code>. Деталі — у «Діагностиці».</div>';
+  const unknown=classifyUnknown(m);
+  if(unknown.real.length) html+='<div class="notice bad"><b>'+unknown.real.length+'</b> ID немає навіть у джерелі — див. «Діагностику».</div>';
+  const unread=m.unknownKeys.filter(k=>!k.cosmetic);
+  if(unread.length) html+='<div class="notice">У дампі є розділи, яких інструмент не читає: <code>'+
+    unread.map(k=>esc(k.key)).join("</code>, <code>")+'</code>. Деталі — у «Діагностиці».</div>';
   $("#notices").innerHTML=html;
+}
+/* Невпізнані ID бувають двох сортів: очікувані (модулі Crafting Station,
+   косметика — їх просто не публікують окремими таблицями) і справжні,
+   через які варто підняти брову. У попередження йдуть лише другі. */
+function classifyUnknown(m){
+  const real=[], expected=[];
+  collectUnknown(m).forEach(id=>{
+    const p=Math.floor(id/1e6);
+    (EXPECTED_UNKNOWN_PREFIXES.has(p)||COSMETIC_PREFIXES.has(p)?expected:real).push(id);
+  });
+  return {real:real,expected:expected};
 }
 function collectUnknown(m){
   const out=new Set();
@@ -1461,7 +1484,7 @@ function renderTimers(m){
 }
 function renderDiag(m){
   const out=[];
-  const ids=collectUnknown(m);
+  const unknown=classifyUnknown(m);
 
   const meta=REF.meta;
   out.push('<div class="group"><h3>Довідник</h3><div class="scroll"><table class="plain cards"><tbody>'+
@@ -1487,12 +1510,20 @@ function renderDiag(m){
     '<div class="scroll"><table class="plain cards"><thead><tr><th>Ключ</th><th>Що це</th>'+
     '<th style="text-align:right">Позицій</th><th style="text-align:right">Штук</th></tr></thead><tbody>'+secRows+'</tbody></table></div></div>');
 
-  if(m.unknownKeys.length){
-    out.push('<div class="group"><h3>Ключі, які інструмент не читає<span class="tag">'+m.unknownKeys.length+'</span></h3>'+
+  const unread=m.unknownKeys.filter(k=>!k.cosmetic);
+  const cosmetic=m.unknownKeys.filter(k=>k.cosmetic);
+  if(unread.length){
+    out.push('<div class="group"><h3>Ключі, які інструмент не читає<span class="tag">'+unread.length+'</span></h3>'+
       '<p class="hint">Якщо серед них є щось корисне — це кандидати на наступні вкладки.</p>'+
-      '<div class="scroll"><table class="plain cards"><tbody>'+m.unknownKeys.map(k=>
+      '<div class="scroll"><table class="plain cards"><tbody>'+unread.map(k=>
         '<tr><td data-label="Ключ"><code>'+esc(k.key)+'</code></td><td data-label="Вміст" class="muted">'+esc(k.shape)+'</td></tr>').join("")+
       '</tbody></table></div></div>');
+  }
+  if(cosmetic.length){
+    out.push('<div class="group"><h3>Косметика<span class="tag">'+cosmetic.length+'</span></h3>'+
+      '<p class="hint">Скіни, пейзажі та оздоблення — до прокачки не стосуються, тому свідомо поза звітом. '+
+      'Перелік лише щоб було видно, що вони в дампі є: '+
+      cosmetic.map(k=>'<code>'+esc(k.key)+'</code> <span class="muted">('+esc(k.shape)+')</span>').join(", ")+'.</p></div>');
   }
   if(m.boosts.length){
     out.push('<div class="group"><h3>Книги й зілля<span class="tag">'+m.boosts.length+'</span></h3>'+
@@ -1500,16 +1531,24 @@ function renderDiag(m){
         '<tr><td data-label="Предмет">'+esc(nameOf(b.id))+'</td><td class="num" data-label="Значення">'+esc(b.value)+'</td></tr>').join("")+
       '</tbody></table></div></div>');
   }
-  if(ids.length){
+  const idBlock=(ids,title,hint,cls)=>{
+    if(!ids.length) return "";
     const by={};
     ids.forEach(id=>{ const p=Math.floor(id/1e6); (by[p]=by[p]||[]).push(id); });
-    out.push('<div class="group"><h3>Поза довідником<span class="tag">'+ids.length+'</span></h3>'+
-      '<p class="hint">Цих ID немає у джерелі. Здебільшого це модулі Crafting Station (102/103) та частина косметики — '+
-      'вони не опубліковані окремими таблицями.</p>'+
+    return '<div class="group"><h3>'+title+'<span class="tag">'+ids.length+'</span></h3>'+
+      '<p class="hint">'+hint+'</p>'+
       Object.keys(by).sort((a,b)=>a-b).map(p=>
         '<div style="margin-bottom:10px"><div class="label">'+p+'000000 · '+(FILE_BY_PREFIX[p]||"немає таблиці")+
-        ' · '+by[p].length+'</div><div class="idlist">'+by[p].map(id=>'<b>'+id+'</b>').join(" · ")+'</div></div>').join("")+
-      '</div>');
+        ' · '+by[p].length+'</div><div class="idlist'+(cls?" "+cls:"")+'">'+
+        by[p].map(id=>'<b>'+id+'</b>').join(" · ")+'</div></div>').join("")+'</div>';
+  };
+  if(unknown.real.length||unknown.expected.length){
+    out.push(idBlock(unknown.real,"Поза довідником",
+      "Цих ID немає у джерелі, і вони не схожі ні на косметику, ні на модулі Crafting Station. "+
+      "Найімовірніше — свіжий контент, якого ClashKing ще не опублікував.",""));
+    out.push(idBlock(unknown.expected,"Очікувано поза таблицями",
+      "Модулі Crafting Station (102/103) та косметика. Окремими таблицями їх не публікують, "+
+      "тож це не проблема — просто перелік.","calm"));
   }else{
     out.push('<div class="group"><h3>Поза довідником</h3><p class="empty">Усе впізнано.</p></div>');
   }
@@ -1568,7 +1607,7 @@ const TABS=[
   {id:"gear",  label:"Спорядження", filters:true, render:renderGear},
   {id:"progress",label:"Прогрес", render:renderProgress},
   {id:"time",  label:"У роботі", render:renderTimers, count:m=>m.timers.length},
-  {id:"diag",  label:"Діагностика", render:renderDiag, count:m=>collectUnknown(m).length}
+  {id:"diag",  label:"Діагностика", render:renderDiag, count:m=>classifyUnknown(m).real.length}
 ];
 let activeTab="plan";
 

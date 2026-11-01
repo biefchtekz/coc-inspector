@@ -1,31 +1,31 @@
 {
-  "version": "d133330f810c",
-  "generated_at": "2026-09-28T10:26:40Z",
+  "version": "4692574a4db0",
+  "generated_at": "2026-11-01T10:59:14Z",
   "upstream": {
     "repo": "ClashKingInc/ClashKingAssets",
-    "sha": "b8f42a707fe92d5293d46088bf536450ae422e7b",
-    "date": "2026-09-28T02:14:33Z"
+    "sha": "07b20a23fb461914f1e669b771f9d25cc3724651",
+    "date": "2026-10-31T21:20:29Z"
   },
   "counts": {
     "buildings": 76,
     "traps": 12,
-    "troops": 99,
+    "troops": 100,
     "spells": 20,
     "heroes": 8,
     "pets": 12,
-    "equipment": 42,
+    "equipment": 43,
     "helpers": 4,
     "guardians": 3,
     "magic_items": 26,
     "decorations": 206,
-    "obstacles": 139,
-    "skins": 277,
+    "obstacles": 140,
+    "skins": 276,
     "sceneries": 77,
     "capital_house_parts": 163
   },
   "totals": {
-    "items": 1164,
-    "levels": 3734
+    "items": 1166,
+    "levels": 3779
   },
   "game": {
     "town_hall_max": 18,
@@ -33,7 +33,7 @@
   },
   "bundle": {
     "file": "ref.min.json",
-    "bytes": 603197,
-    "sha256": "d133330f810c603a59b8720786b33a10465800915c291166b5fe59139cf7d26a"
+    "bytes": 609275,
+    "sha256": "4692574a4db034d1539496dd27fb98fecd34c2f81e07f1193937f6f56ba1b059"
   }
 }

@@ -1,10 +1,10 @@
 {
-  "version": "4692574a4db0",
-  "generated_at": "2026-11-01T10:59:14Z",
+  "version": "0ba2c2d8db55",
+  "generated_at": "2026-11-09T12:27:16Z",
   "upstream": {
     "repo": "ClashKingInc/ClashKingAssets",
-    "sha": "07b20a23fb461914f1e669b771f9d25cc3724651",
-    "date": "2026-10-31T21:20:29Z"
+    "sha": "3f00903e6f382aa0f4ec6767bc6c00be32138258",
+    "date": "2026-11-09T02:49:50Z"
   },
   "counts": {
     "buildings": 76,
@@ -25,7 +25,7 @@
   },
   "totals": {
     "items": 1166,
-    "levels": 3779
+    "levels": 3772
   },
   "game": {
     "town_hall_max": 18,
@@ -33,7 +33,7 @@
   },
   "bundle": {
     "file": "ref.min.json",
-    "bytes": 609275,
-    "sha256": "4692574a4db034d1539496dd27fb98fecd34c2f81e07f1193937f6f56ba1b059"
+    "bytes": 608633,
+    "sha256": "0ba2c2d8db554c06c13908d5466d5a7b8de3addceee53b44678a3e174393b6b8"
   }
 }
